@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using TMPro;
 
-public class CategoryScrollItem : MonoBehaviour, IPointerDownHandler, IPointerExitHandler
+public class CategoryScrollItem : MonoBehaviour
 {
     [SerializeField]
     private Button mButton;
@@ -12,16 +12,6 @@ public class CategoryScrollItem : MonoBehaviour, IPointerDownHandler, IPointerEx
 
     private int mIndex;
     private bool mIsPrimaryCat;
-
-    public void OnPointerDown(PointerEventData eventData)
-    {
-        MainScreen.Instance.StallForChoiceInput();
-    }
-
-    public void OnPointerExit(PointerEventData eventData)
-    {
-        MainScreen.Instance.RefocusCategoryInput(mIsPrimaryCat);
-    }
 
     public void Init(int index, string text, bool isPrimaryCat)
     {

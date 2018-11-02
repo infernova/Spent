@@ -6,6 +6,7 @@ using StarstruckFramework;
 [CreateAssetMenu]
 public class ExpenditureStats : ScriptableObject
 {
+    public ExpenditureItemList[] RecurringItems = new ExpenditureItemList[32];
     public List<ExpenditureItem> Items = new List<ExpenditureItem>();
     public List<string> PrimaryCategories = new List<string>();
     public StringListDictionary SecondaryCategories = new StringListDictionary();
@@ -14,6 +15,24 @@ public class ExpenditureStats : ScriptableObject
 
     public StringIntDictionary PrimaryCatCount = new StringIntDictionary();
     public StringIntDictionary SecondaryCatCount = new StringIntDictionary();
+
+    public void ClearStats()
+    {
+        RecurringItems = new ExpenditureItemList[32];
+        Items = new List<ExpenditureItem>();
+        PrimaryCategories = new List<string>();
+        SecondaryCategories = new StringListDictionary();
+        LastUsedPrimaryCategories = new List<string>();
+        LastUsedSecondaryCategories = new StringListDictionary();
+
+        PrimaryCatCount = new StringIntDictionary();
+        SecondaryCatCount = new StringIntDictionary();
+    }
+
+    public void AddRecurringExpenditure(ExpenditureItem item, int day)
+    {
+        RecurringItems[day].Add(item);
+    }
 
     public void Add(ExpenditureItem item)
     {
@@ -123,6 +142,48 @@ public class ExpenditureStats : ScriptableObject
 }
 
 [Serializable]
+public class ExpenditureItemList
+{
+    public List<ExpenditureItem> List;
+
+    public bool Contains(ExpenditureItem s)
+    {
+        return List.Contains(s);
+    }
+
+    public void Add(ExpenditureItem s)
+    {
+        List.Add(s);
+    }
+
+    public void Insert(int index, ExpenditureItem s)
+    {
+        List.Insert(index, s);
+    }
+
+    public void Remove(ExpenditureItem s)
+    {
+        List.Remove(s);
+    }
+
+    public void RemoveAt(int index)
+    {
+        List.RemoveAt(index);
+    }
+
+    public int Count
+    {
+        get { return List.Count; }
+    }
+
+    public ExpenditureItem this[int i]
+    {
+        get { return List[i]; }
+        set { List[i] = value; }
+    }
+}
+
+[Serializable]
 public class StringListDictionary : SerializableDictionary<string, StringListItem> { }
 
 [Serializable]
@@ -190,10 +251,10 @@ public struct ExpenditureItem
     public SerializableDatetime Date;
 
     public ExpenditureItem(float amount,
-        string primaryCat,
-        string secondaryCat,
-        string desc,
-        DateTime date)
+                           string primaryCat,
+                           string secondaryCat,
+                           string desc,
+                           DateTime date)
     {
         Amount = amount;
         PrimaryCategory = primaryCat.ToUpper();
