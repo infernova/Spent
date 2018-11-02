@@ -113,7 +113,7 @@ namespace StarstruckFramework
 
 				if (i >= mItemList.Count)
 				{
-					gob = GameObject.Instantiate<GameObject>(mListItem, mContainerRect);
+					gob = Instantiate(mListItem, mContainerRect);
 					mItemList.Add(gob.GetComponent<GUILiteScrollListItem>());
 				}
 				else
@@ -125,6 +125,14 @@ namespace StarstruckFramework
 				gob.GetComponent<GUILiteScrollListItem>().ResetPosition(i);
 			}
 		}
+
+        public void RefreshAll()
+        {
+            foreach (GUILiteScrollListItem item in mItemList)
+            {
+                item.ResetPosition();
+            }
+        }
 
 		void Update()
 		{

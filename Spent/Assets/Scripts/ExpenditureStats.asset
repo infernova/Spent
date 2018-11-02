@@ -11,15 +11,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e50467b48f2674b40845ed7387b7ad19, type: 3}
   m_Name: ExpenditureStats
   m_EditorClassIdentifier: 
-  Items:
-  - Amount: 1
-    PrimaryCategory: FOOD
-    SecondaryCategory: LUNCH
-    Description: 
-    Date:
-      mDateTimeString: 10/23/2018 8:00:00 AM
-  PrimaryCategories:
-  - FOOD
+  Items: []
+  PrimaryCategories: []
   SecondaryCategories:
-    _keys:
-    - FOOD
+    _keys: []
+    _values: []
+  LastUsedPrimaryCategories: []
+  LastUsedSecondaryCategories:
+    _keys: []
+    _values: []
+  PrimaryCatCount:
+    _keys: []
+    _values: 
+  SecondaryCatCount:
+    _keys: []
+    _values: 

@@ -1,11 +1,34 @@
 ﻿using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using StarstruckFramework;
 using System;
 using System.Collections.Generic;
 
-public class MainScreen : MonoBehaviour
+public class MainScreen : SingletonBehavior<MainScreen>
 {
+    private void Update()
+    {
+        if (mAddExpenditureContainer.activeSelf)
+        {
+            if (EditIndex == -1 && !mAddExpenditureButton.activeSelf)
+            {
+                mEditExpenditureButtonContainer.SetActive(false);
+                mAddExpenditureButton.SetActive(true);
+            }
+            else if (EditIndex != -1 && !mEditExpenditureButtonContainer.activeSelf)
+            {
+                mEditExpenditureButtonContainer.SetActive(true);
+                mAddExpenditureButton.SetActive(false);
+            }
+        }
+    }
+
+    #region Add Expenditure
+    [SerializeField]
+    private GameObject mAddExpenditureContainer;
+    [SerializeField]
+    private GameObject mAddExpenditureButton;
     [SerializeField]
     private TMP_InputField mDayField;
     [SerializeField]
@@ -39,22 +62,64 @@ public class MainScreen : MonoBehaviour
 
     private void Start()
     {
+        LoadBlankExpenditure();
+    }
+
+	private void OnApplicationPause(bool pause)
+	{
+        if (!pause)
+        {
+            try
+            {
+                int day = int.Parse(mDayField.text);
+                int month = int.Parse(mMonthField.text);
+                int year = int.Parse(mYearField.text);
+
+                DateTime date = new DateTime(year, month, day);
+
+                if (!mAddExpenditureContainer.activeSelf
+                    || DateTime.Now.Date != date)
+                {
+                    LoadBlankExpenditure();
+                }
+            }
+            catch
+            {
+                
+            }
+        }
+	}
+
+	private void LoadBlankExpenditure()
+    {
+        mAddExpenditureContainer.SetActive(true);
+        mExpenditureListContainer.SetActive(false);
+        mCostBreakdownContainer.SetActive(false);
+
         mDayField.text = DateTime.Now.ToString("dd");
         mMonthField.text = DateTime.Now.ToString("MM");
         mYearField.text = DateTime.Now.ToString("yyyy");
 
-        OnDateEndEdit();
+        mAmountField.text = string.Empty;
+        mPrimaryCatField.text = string.Empty;
+        mSecondaryCatField.text = string.Empty;
+        mDescriptionField.text = string.Empty;
 
-        mStats.LoadCategories();
+        OnDateEndEdit();
     }
 
     private void LateUpdate()
     {
-        if (!mPrimaryCatField.isFocused 
+        if (!mPrimaryCatField.isFocused
             && !mIsStallingForChoiceInput
             && mPrimaryCatDropdown.gameObject.activeSelf)
         {
             mPrimaryCatDropdown.gameObject.SetActive(false);
+        }
+        else if (mPrimaryCatField.isFocused
+                 && !mPrimaryCatDropdown.gameObject.activeSelf)
+        {
+            mPrimaryCatDropdown.gameObject.SetActive(true);
         }
 
         if (!mSecondaryCatField.isFocused
@@ -62,6 +127,11 @@ public class MainScreen : MonoBehaviour
             && mSecondaryCatDropdown.gameObject.activeSelf)
         {
             mSecondaryCatDropdown.gameObject.SetActive(false);
+        }
+        else if (mSecondaryCatField.isFocused
+                 && !mSecondaryCatDropdown.gameObject.activeSelf)
+        {
+            mSecondaryCatDropdown.gameObject.SetActive(true);
         }
     }
 
@@ -225,6 +295,11 @@ public class MainScreen : MonoBehaviour
             }
         }
 
+        if (text.Length == 0)
+        {
+            mPrimaryCatOptions = mStats.LastUsedPrimaryCategories;
+        }
+
         mPrimaryCatDropdown.UpdateOptions(mPrimaryCatOptions, true);
         mPrimaryCatDropdown.gameObject.SetActive(true);
     }
@@ -237,7 +312,7 @@ public class MainScreen : MonoBehaviour
         {
             bool hasFoundMatch = false;
             string primaryCat = mPrimaryCatField.text;
-            for (int i = 0; i < mStats.SecondaryCategories.Count; i++)
+            for (int i = 0; i < mStats.SecondaryCategories[primaryCat].Count; i++)
             {
                 if (mStats.SecondaryCategories[primaryCat][i].StartsWith(text,
                     StringComparison.InvariantCultureIgnoreCase))
@@ -259,7 +334,238 @@ public class MainScreen : MonoBehaviour
             mSecondaryCatOptions.Add(text.ToUpper());
         }
 
+        if (text.Length == 0 && mStats.LastUsedSecondaryCategories.ContainsKey(mPrimaryCatField.text.ToUpper()))
+        {
+            mSecondaryCatOptions = mStats.LastUsedSecondaryCategories[mPrimaryCatField.text.ToUpper()].List;
+        }
+
         mSecondaryCatDropdown.UpdateOptions(mSecondaryCatOptions, false);
         mSecondaryCatDropdown.gameObject.SetActive(true);
+    }
+    #endregion
+
+    #region Expenditure List
+    [SerializeField]
+    private GameObject mExpenditureListContainer;
+    [SerializeField]
+    private GameObject mEditExpenditureButtonContainer;
+    [SerializeField]
+    private GUILiteScrollList mExpenditureList;
+    [SerializeField]
+    private Button mEditExpenditureButton;
+    [SerializeField]
+    private Button mRemoveExpenditureButton;
+    private int mEditIndex = -1;
+    private int EditIndex
+    {
+        get { return mEditIndex; }
+        set
+        {
+            if (mEditIndex == value)
+            {
+                mEditIndex = -1;
+            }
+            else
+            {
+                mEditIndex = value;
+            }
+
+            for (int i = 0; i < mExpenditureList.ItemList.Count; i++)
+            {
+                ((ExpenditureListItem)mExpenditureList.ItemList[i]).SetAsSelected(i == mEditIndex);
+            }
+
+            mEditExpenditureButton.interactable = EditIndex != -1;
+            mRemoveExpenditureButton.interactable = EditIndex != -1;
+        }
+    }
+
+    public void LoadExpenditureList()
+    {
+        mExpenditureListContainer.SetActive(true);
+        mExpenditureList.Init(mStats.Items.Count);
+        EditIndex = -1;
+    }
+
+    public void SelectExpenditureItem(int index)
+    {
+        EditIndex = index;
+    }
+
+    public void StartItemEdit()
+    {
+        mExpenditureListContainer.SetActive(false);
+        mAddExpenditureContainer.SetActive(true);
+
+        ExpenditureItem item = mStats.Items[EditIndex];
+
+        mDayField.text = item.Date.ToString("dd");
+        mMonthField.text = item.Date.ToString("MM");
+        mYearField.text = item.Date.ToString("yyyy");
+
+        mAmountField.text = item.Amount.ToString("0.00");
+        mPrimaryCatField.text = item.PrimaryCategory;
+        mSecondaryCatField.text = item.SecondaryCategory;
+        mDescriptionField.text = item.Description;
+    }
+
+    public void CancelEdit()
+    {
+        EditIndex = -1;
+        mExpenditureListContainer.SetActive(true);
+        mAddExpenditureContainer.SetActive(false);
+    }
+
+    public void ConfirmEdit()
+    {
+        int day = int.Parse(mDayField.text);
+        int month = int.Parse(mMonthField.text);
+        int year = int.Parse(mYearField.text);
+
+        DateTime date = new DateTime(year, month, day);
+        float amount = float.Parse(mAmountField.text);
+
+        mStats.Edit(mStats.Items[EditIndex],
+                    new ExpenditureItem(amount,
+                                        mPrimaryCatField.text,
+                                        mSecondaryCatField.text,
+                                        mDescriptionField.text,
+                                        date));
+
+        EditIndex = -1;
+        mExpenditureListContainer.SetActive(true);
+        mAddExpenditureContainer.SetActive(false);
+    }
+
+    public void RemoveExpenditure()
+    {
+        mStats.Remove(EditIndex);
+        LoadExpenditureList();
+    }
+    #endregion
+
+    #region Cost Breakdown
+    [SerializeField]
+    private GameObject mCostBreakdownContainer;
+    [SerializeField]
+    private TextMeshProUGUI mTotalSpendAmount;
+    [SerializeField]
+    private GUILiteScrollList mCostBreakdownList;
+    public List<CostBreakdownItem> CostBreakdownItems;
+    private int mCostBreakdownIndex = -1;
+    private int CostBreakdownIndex
+    {
+        get { return mCostBreakdownIndex; }
+        set
+        {
+            if (mCostBreakdownIndex == value)
+            {
+                mCostBreakdownIndex = -1;
+            }
+            else
+            {
+                mCostBreakdownIndex = value;
+            }
+
+            for (int i = 0; i < mCostBreakdownList.ItemList.Count; i++)
+            {
+                ((CostBreakdownListItem)mCostBreakdownList.ItemList[i]).SetAsSelected(i == mCostBreakdownIndex);
+            }
+        }
+    }
+
+    public void LoadCostBreakdown(string s)
+    {
+        mCostBreakdownContainer.SetActive(true);
+        float totalAmount = 0.0f;
+        Dictionary<string, float> categoryAmounts = new Dictionary<string, float>();
+
+        if (string.IsNullOrEmpty(s))
+        {
+            foreach (ExpenditureItem item in mStats.Items)
+            {
+                totalAmount += item.Amount;
+                if (!categoryAmounts.ContainsKey(item.PrimaryCategory))
+                {
+                    categoryAmounts.Add(item.PrimaryCategory, item.Amount);
+                }
+                else
+                {
+                    categoryAmounts[item.PrimaryCategory] += item.Amount;
+                }
+            }
+        }
+        else
+        {
+            foreach (ExpenditureItem item in mStats.Items)
+            {
+                if (!item.PrimaryCategory.Equals(s, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    continue;
+                }
+
+                totalAmount += item.Amount;
+                if (!categoryAmounts.ContainsKey(item.SecondaryCategory))
+                {
+                    categoryAmounts.Add(item.SecondaryCategory, item.Amount);
+                }
+                else
+                {
+                    categoryAmounts[item.SecondaryCategory] += item.Amount;
+                }
+            }
+        }
+
+        CostBreakdownItems = new List<CostBreakdownItem>();
+        foreach(KeyValuePair<string, float> pair in categoryAmounts)
+        {
+            CostBreakdownItems.Add(new CostBreakdownItem(pair.Key, pair.Value, (pair.Value / totalAmount) * 100.0f));
+        }
+
+        CostBreakdownItems.Sort();
+
+        mTotalSpendAmount.text = "$" + totalAmount.ToString("0.00");
+        mCostBreakdownList.Init(CostBreakdownItems.Count);
+        CostBreakdownIndex = -1;
+    }
+
+    public void SelectCostBreakdownItem(int index)
+    {
+        CostBreakdownIndex = index;
+    }
+    #endregion
+}
+
+public class CostBreakdownItem : IComparable
+{
+    public string Category;
+    public float Amount;
+    public float Percentage;
+
+    public CostBreakdownItem(string cat, float amount, float percentage)
+    {
+        Category = cat;
+        Amount = amount;
+        Percentage = percentage;
+    }
+
+    int IComparable.CompareTo (object other)
+    {
+        if (other.GetType() != typeof(CostBreakdownItem))
+        {
+            return 0;
+        }
+        if (((CostBreakdownItem)other).Amount > Amount)
+        {
+            return 1;
+        }
+        else if (((CostBreakdownItem)other).Amount < Amount)
+        {
+            return -1;
+        }
+        else
+        {
+            return 0;
+        }
     }
 }

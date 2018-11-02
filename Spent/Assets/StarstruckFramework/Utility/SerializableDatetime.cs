@@ -50,6 +50,11 @@ public struct SerializableDatetime : ISerializationCallbackReceiver
         return mDateTime.ToString();
     }
 
+    public string ToString(string format)
+    {
+        return mDateTime.ToString(format);
+    }
+
     public override bool Equals(object obj)
     {
         return mDateTime.Equals(obj);

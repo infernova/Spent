@@ -9,44 +9,176 @@ public class ExpenditureStats : ScriptableObject
     public List<ExpenditureItem> Items = new List<ExpenditureItem>();
     public List<string> PrimaryCategories = new List<string>();
     public StringListDictionary SecondaryCategories = new StringListDictionary();
+    public List<string> LastUsedPrimaryCategories = new List<string>();
+    public StringListDictionary LastUsedSecondaryCategories = new StringListDictionary();
+
+    public StringIntDictionary PrimaryCatCount = new StringIntDictionary();
+    public StringIntDictionary SecondaryCatCount = new StringIntDictionary();
 
     public void Add(ExpenditureItem item)
     {
-        Items.Add(item);
-        LoadCategory(item);
-    }
+        Items.Insert(0, item);
+        AddCategory(item);
 
-    public void LoadCategories()
-    {
-        foreach (ExpenditureItem item in Items)
+        if (LastUsedPrimaryCategories.Contains(item.PrimaryCategory))
         {
-            LoadCategory(item);
+            LastUsedPrimaryCategories.Remove(item.PrimaryCategory);
+        }
+
+        LastUsedPrimaryCategories.Insert(0, item.PrimaryCategory);
+
+        while (LastUsedPrimaryCategories.Count > 5)
+        {
+            LastUsedPrimaryCategories.RemoveAt(LastUsedPrimaryCategories.Count - 1);
+        }
+
+        if (!LastUsedSecondaryCategories.ContainsKey(item.PrimaryCategory))
+        {
+            LastUsedSecondaryCategories.Add(item.PrimaryCategory, new StringListItem(item.SecondaryCategory));
+        }
+        else
+        {
+            LastUsedSecondaryCategories[item.PrimaryCategory].Insert(0, item.PrimaryCategory);
+
+            while (LastUsedSecondaryCategories[item.PrimaryCategory].Count > 5)
+            {
+                LastUsedSecondaryCategories[item.PrimaryCategory].RemoveAt(LastUsedPrimaryCategories.Count - 1);
+            }
         }
     }
 
-    public void LoadCategory(ExpenditureItem item)
+    public void AddCategory(ExpenditureItem item)
     {
         if (!PrimaryCategories.Contains(item.PrimaryCategory))
         {
             PrimaryCategories.Add(item.PrimaryCategory);
             PrimaryCategories.Sort();
-            SecondaryCategories[item.PrimaryCategory] = new List<string>();
+
+            PrimaryCatCount.Add(item.PrimaryCategory, 1);
+
+            SecondaryCategories.Add(item.PrimaryCategory, new StringListItem(item.SecondaryCategory));
+        }
+        else
+        {
+            PrimaryCatCount[item.PrimaryCategory]++;
         }
 
-        if (!SecondaryCategories.ContainsKey(item.PrimaryCategory))
-        {
-            SecondaryCategories[item.PrimaryCategory] = new List<string> { item.SecondaryCategory };
-        }
-        else if (!SecondaryCategories[item.PrimaryCategory].Contains(item.SecondaryCategory))
+        if (!SecondaryCategories[item.PrimaryCategory].Contains(item.SecondaryCategory))
         {
             SecondaryCategories[item.PrimaryCategory].Add(item.SecondaryCategory);
-            SecondaryCategories[item.PrimaryCategory].Sort();
+        }
+
+        if (!SecondaryCatCount.ContainsKey(item.PrimaryCategory + "-" + item.SecondaryCategory))
+        {
+            SecondaryCatCount.Add(item.PrimaryCategory + "-" + item.SecondaryCategory, 1);
+        }
+        else
+        {
+            SecondaryCatCount[item.PrimaryCategory + "-" + item.SecondaryCategory]++;
+        }
+    }
+
+    public void Remove(int index)
+    {
+        RemoveCategory(Items[index]);
+        Items.RemoveAt(index);
+    }
+
+    public void Remove(ExpenditureItem item)
+    {
+        Items.Remove(item);
+        RemoveCategory(item);
+    }
+
+    public void Edit(ExpenditureItem oldItem, ExpenditureItem newItem)
+    {
+        Remove(oldItem);
+        Add(newItem);
+    }
+
+    public void RemoveCategory(ExpenditureItem item)
+    {
+        PrimaryCatCount[item.PrimaryCategory]--;
+
+        if (PrimaryCatCount[item.PrimaryCategory] == 0)
+        {
+            PrimaryCategories.Remove(item.PrimaryCategory);
+            PrimaryCatCount.Remove(item.PrimaryCategory);
+
+            SecondaryCategories.Remove(item.PrimaryCategory);
+            SecondaryCatCount.Remove(item.PrimaryCategory + "-" + item.SecondaryCategory);
+
+            LastUsedSecondaryCategories.Remove(item.PrimaryCategory);
+        }
+        else
+        {
+            SecondaryCatCount[item.PrimaryCategory + "-" + item.SecondaryCategory]--;
+            if (SecondaryCatCount[item.PrimaryCategory + "-" + item.SecondaryCategory] == 0)
+            {
+                SecondaryCategories[item.PrimaryCategory].Remove(item.SecondaryCategory);
+                SecondaryCatCount.Remove(item.PrimaryCategory + "-" + item.SecondaryCategory);
+            }
         }
     }
 }
 
 [Serializable]
-public class StringListDictionary : SerializableDictionary<string, List<string>> { }
+public class StringListDictionary : SerializableDictionary<string, StringListItem> { }
+
+[Serializable]
+public class StringIntDictionary : SerializableDictionary<string, int> { }
+
+[Serializable]
+public struct StringListItem
+{
+    private List<string> mList;
+    public List<string> List
+    {
+        get { return mList; }
+    }
+
+    public StringListItem(string s)
+    {
+        mList = new List<string> { s };
+    }
+
+    public bool Contains(string s)
+    {
+        return mList.Contains(s);
+    }
+
+    public void Add(string s)
+    {
+        mList.Add(s);
+        mList.Sort();
+    }
+
+    public void Insert(int index, string s)
+    {
+        mList.Insert(index, s);
+    }
+
+    public void Remove(string s)
+    {
+        mList.Remove(s);
+    }
+
+    public void RemoveAt(int index)
+    {
+        mList.RemoveAt(index);
+    }
+
+    public int Count
+    {
+        get { return mList.Count; }
+    }
+
+    public string this[int i]
+    {
+        get { return mList[i]; }
+        set { mList[i] = value; }
+    }
+}
 
 [Serializable]
 public struct ExpenditureItem

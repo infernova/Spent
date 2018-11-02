@@ -9,33 +9,34 @@ public class CategoryScrollItem : MonoBehaviour, IPointerDownHandler, IPointerEx
     private Button mButton;
     [SerializeField]
     private TMP_Text mText;
-    [SerializeField]
-    private MainScreen mMain;
 
     private int mIndex;
     private bool mIsPrimaryCat;
 
     public void OnPointerDown(PointerEventData eventData)
     {
-        mMain.StallForChoiceInput();
+        MainScreen.Instance.StallForChoiceInput();
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        mMain.RefocusCategoryInput(mIsPrimaryCat);
+        MainScreen.Instance.RefocusCategoryInput(mIsPrimaryCat);
     }
 
     public void Init(int index, string text, bool isPrimaryCat)
     {
+        mIndex = index;
+        mIsPrimaryCat = isPrimaryCat;
+
         gameObject.SetActive(true);
 
         if (isPrimaryCat)
         {
-            mButton.onClick.AddListener(() => mMain.OnPrimaryCatSelect(index));
+            mButton.onClick.AddListener(() => MainScreen.Instance.OnPrimaryCatSelect(index));
         }
         else
         {
-            mButton.onClick.AddListener(() => mMain.OnSecondaryCatSelect(index));
+            mButton.onClick.AddListener(() => MainScreen.Instance.OnSecondaryCatSelect(index));
         }
 
         mText.text = text;
