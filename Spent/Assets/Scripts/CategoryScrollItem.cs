@@ -32,6 +32,6 @@ public class CategoryScrollItem : MonoBehaviour
         mText.text = text;
 
         RectTransform rectTrans = GetComponent<RectTransform>();
-        rectTrans.anchoredPosition = new Vector2(0.0f, 0.0f - (rectTrans.rect.height * index));
+        rectTrans.anchoredPosition = new Vector2(0.0f, 0.0f + (rectTrans.rect.height * index));
     }
 }

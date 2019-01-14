@@ -8,25 +8,121 @@ public class ExpenditureStats : ScriptableObject
 {
     public ExpenditureItemList[] RecurringItems = new ExpenditureItemList[32];
     public List<ExpenditureItem> Items = new List<ExpenditureItem>();
-    public List<string> PrimaryCategories = new List<string>();
-    public StringListDictionary SecondaryCategories = new StringListDictionary();
-    public List<string> LastUsedPrimaryCategories = new List<string>();
-    public StringListDictionary LastUsedSecondaryCategories = new StringListDictionary();
 
+    public List<string> PrimaryCategories = new List<string>();
+    public List<string> LastUsedPrimaryCategories = new List<string>();
     public StringIntDictionary PrimaryCatCount = new StringIntDictionary();
-    public StringIntDictionary SecondaryCatCount = new StringIntDictionary();
+
+    public Dictionary<string, List<string>> SecondaryCategories = new Dictionary<string, List<string>>();
+    public Dictionary<string, List<string>> LastUsedSecondaryCategories = new Dictionary<string, List<string>>();
+    public Dictionary<string, Dictionary<string, int>> SecondaryCatCount = new Dictionary<string, Dictionary<string, int>>();
+
+    [SerializeField]
+    private StringListDictionary SerializedSecondaryCategories = new StringListDictionary();
+    [SerializeField]
+    private StringListDictionary SerializedLastUsedSecondaryCategories = new StringListDictionary();
+    [SerializeField]
+    private StringIntDictionary SerializedSecondaryCatCount = new StringIntDictionary();
+
+    public void LoadCategories()
+    {
+        SecondaryCategories = new Dictionary<string, List<string>>();
+        foreach (KeyValuePair<string, string> pair in SerializedSecondaryCategories)
+        {
+            SecondaryCategories.Add(pair.Key, new List<string>(pair.Value.Split('\t')));
+        }
+
+        LastUsedSecondaryCategories = new Dictionary<string, List<string>>();
+        foreach (KeyValuePair<string, string> pair in SerializedLastUsedSecondaryCategories)
+        {
+            LastUsedSecondaryCategories.Add(pair.Key, new List<string>(pair.Value.Split('\t')));
+        }
+
+        foreach (KeyValuePair<string, int> pair in SerializedSecondaryCatCount)
+        {
+            string[] idArray = pair.Key.Split('\t');
+            if (!SecondaryCatCount.ContainsKey(idArray[0]))
+            {
+                SecondaryCatCount.Add(idArray[0], new Dictionary<string, int>());
+            }
+
+            SecondaryCatCount[idArray[0]].Add(idArray[1], pair.Value);
+        }
+    }
+
+    public void SaveSecondaryCategory(string priCat)
+    {
+        if (!SecondaryCategories.ContainsKey(priCat) && SerializedSecondaryCategories.ContainsKey(priCat))
+        {
+            SerializedSecondaryCategories.Remove(priCat);
+        }
+        else if (SecondaryCategories.ContainsKey(priCat))
+        {
+            List<string> secondaryCats = SecondaryCategories[priCat];
+            System.Text.StringBuilder stringBuilder = new System.Text.StringBuilder();
+            for (int i = 0; i < secondaryCats.Count; i++)
+            {
+                stringBuilder.Append(secondaryCats[i]);
+                if (i < secondaryCats.Count - 1)
+                {
+                    stringBuilder.Append("\t");
+                }
+            }
+
+            if (!SerializedSecondaryCategories.ContainsKey(priCat))
+            {
+                SerializedSecondaryCategories.Add(priCat, stringBuilder.ToString());
+            }
+            else
+            {
+                SerializedSecondaryCategories[priCat] = stringBuilder.ToString();
+            }
+        }
+
+        if (!LastUsedSecondaryCategories.ContainsKey(priCat) && SerializedLastUsedSecondaryCategories.ContainsKey(priCat))
+        {
+            SerializedLastUsedSecondaryCategories.Remove(priCat);
+        }
+        else if (LastUsedSecondaryCategories.ContainsKey(priCat))
+        {
+            List<string> lastUsedCats = LastUsedSecondaryCategories[priCat];
+            System.Text.StringBuilder stringBuilder = new System.Text.StringBuilder();
+            for (int i = 0; i < lastUsedCats.Count; i++)
+            {
+                stringBuilder.Append(lastUsedCats[i]);
+                if (i < lastUsedCats.Count - 1)
+                {
+                    stringBuilder.Append("\t");
+                }
+            }
+
+            if (!SerializedLastUsedSecondaryCategories.ContainsKey(priCat))
+            {
+                SerializedLastUsedSecondaryCategories.Add(priCat, stringBuilder.ToString());
+            }
+            else
+            {
+                SerializedLastUsedSecondaryCategories[priCat] = stringBuilder.ToString();
+            }
+        }
+    }
 
     public void ClearStats()
     {
         RecurringItems = new ExpenditureItemList[32];
         Items = new List<ExpenditureItem>();
-        PrimaryCategories = new List<string>();
-        SecondaryCategories = new StringListDictionary();
-        LastUsedPrimaryCategories = new List<string>();
-        LastUsedSecondaryCategories = new StringListDictionary();
 
+        PrimaryCategories = new List<string>();
+        LastUsedPrimaryCategories = new List<string>();
         PrimaryCatCount = new StringIntDictionary();
-        SecondaryCatCount = new StringIntDictionary();
+
+        SecondaryCategories = new Dictionary<string, List<string>>();
+        LastUsedSecondaryCategories = new Dictionary<string, List<string>>();
+        SecondaryCatCount = new Dictionary<string, Dictionary<string, int>>();
+
+        SerializedSecondaryCategories = new StringListDictionary();
+        SerializedLastUsedSecondaryCategories = new StringListDictionary();
+        SerializedSecondaryCatCount = new StringIntDictionary();
     }
 
     public void AddRecurringExpenditure(ExpenditureItem item, int day)
@@ -37,7 +133,7 @@ public class ExpenditureStats : ScriptableObject
     public void Add(ExpenditureItem item)
     {
         Items.Insert(0, item);
-        AddCategory(item);
+        Items.Sort();
 
         if (LastUsedPrimaryCategories.Contains(item.PrimaryCategory))
         {
@@ -53,17 +149,24 @@ public class ExpenditureStats : ScriptableObject
 
         if (!LastUsedSecondaryCategories.ContainsKey(item.PrimaryCategory))
         {
-            LastUsedSecondaryCategories.Add(item.PrimaryCategory, new StringListItem(item.SecondaryCategory));
+            LastUsedSecondaryCategories.Add(item.PrimaryCategory, new List<string> { item.SecondaryCategory });
         }
         else
         {
-            LastUsedSecondaryCategories[item.PrimaryCategory].Insert(0, item.PrimaryCategory);
+            if (LastUsedSecondaryCategories[item.PrimaryCategory].Contains(item.SecondaryCategory))
+            {
+                LastUsedSecondaryCategories[item.PrimaryCategory].Remove(item.SecondaryCategory);    
+            }
+
+            LastUsedSecondaryCategories[item.PrimaryCategory].Insert(0, item.SecondaryCategory);
 
             while (LastUsedSecondaryCategories[item.PrimaryCategory].Count > 5)
             {
                 LastUsedSecondaryCategories[item.PrimaryCategory].RemoveAt(LastUsedPrimaryCategories.Count - 1);
             }
         }
+
+        AddCategory(item);
     }
 
     public void AddCategory(ExpenditureItem item)
@@ -75,7 +178,7 @@ public class ExpenditureStats : ScriptableObject
 
             PrimaryCatCount.Add(item.PrimaryCategory, 1);
 
-            SecondaryCategories.Add(item.PrimaryCategory, new StringListItem(item.SecondaryCategory));
+            SecondaryCategories.Add(item.PrimaryCategory, new List<string> { item.SecondaryCategory });
         }
         else
         {
@@ -85,16 +188,26 @@ public class ExpenditureStats : ScriptableObject
         if (!SecondaryCategories[item.PrimaryCategory].Contains(item.SecondaryCategory))
         {
             SecondaryCategories[item.PrimaryCategory].Add(item.SecondaryCategory);
+            SecondaryCategories[item.PrimaryCategory].Sort();
         }
 
-        if (!SecondaryCatCount.ContainsKey(item.PrimaryCategory + "-" + item.SecondaryCategory))
+        if (!SecondaryCatCount.ContainsKey(item.PrimaryCategory))
         {
-            SecondaryCatCount.Add(item.PrimaryCategory + "-" + item.SecondaryCategory, 1);
+            SecondaryCatCount.Add(item.PrimaryCategory, new Dictionary<string, int>());
+        }
+
+        if (!SecondaryCatCount[item.PrimaryCategory].ContainsKey(item.SecondaryCategory))
+        {
+            SecondaryCatCount[item.PrimaryCategory].Add(item.SecondaryCategory, 1);
+            SerializedSecondaryCatCount.Add(item.PrimaryCategory + "\t" + item.SecondaryCategory, 1);
         }
         else
         {
-            SecondaryCatCount[item.PrimaryCategory + "-" + item.SecondaryCategory]++;
+            SecondaryCatCount[item.PrimaryCategory][item.SecondaryCategory]++;
+            SerializedSecondaryCatCount[item.PrimaryCategory + "\t" + item.SecondaryCategory]++;
         }
+
+        SaveSecondaryCategory(item.PrimaryCategory);
     }
 
     public void Remove(int index)
@@ -109,12 +222,6 @@ public class ExpenditureStats : ScriptableObject
         RemoveCategory(item);
     }
 
-    public void Edit(ExpenditureItem oldItem, ExpenditureItem newItem)
-    {
-        Remove(oldItem);
-        Add(newItem);
-    }
-
     public void RemoveCategory(ExpenditureItem item)
     {
         PrimaryCatCount[item.PrimaryCategory]--;
@@ -125,19 +232,32 @@ public class ExpenditureStats : ScriptableObject
             PrimaryCatCount.Remove(item.PrimaryCategory);
 
             SecondaryCategories.Remove(item.PrimaryCategory);
-            SecondaryCatCount.Remove(item.PrimaryCategory + "-" + item.SecondaryCategory);
+            SerializedSecondaryCategories.Remove(item.PrimaryCategory);
+            SecondaryCatCount.Remove(item.PrimaryCategory);
+
+            foreach (string key in SerializedSecondaryCatCount.Keys)
+            {
+                if (key.StartsWith(item.PrimaryCategory + "\t", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    SerializedSecondaryCatCount.Remove(key);
+                }
+            }
 
             LastUsedSecondaryCategories.Remove(item.PrimaryCategory);
+            SerializedLastUsedSecondaryCategories.Remove(item.PrimaryCategory);
         }
         else
         {
-            SecondaryCatCount[item.PrimaryCategory + "-" + item.SecondaryCategory]--;
-            if (SecondaryCatCount[item.PrimaryCategory + "-" + item.SecondaryCategory] == 0)
+            SecondaryCatCount[item.PrimaryCategory][item.SecondaryCategory]--;
+            if (SecondaryCatCount[item.PrimaryCategory][item.SecondaryCategory] == 0)
             {
                 SecondaryCategories[item.PrimaryCategory].Remove(item.SecondaryCategory);
-                SecondaryCatCount.Remove(item.PrimaryCategory + "-" + item.SecondaryCategory);
+                SecondaryCatCount[item.PrimaryCategory].Remove(item.SecondaryCategory);
+                SerializedSecondaryCatCount.Remove(item.PrimaryCategory + "\t" + item.SecondaryCategory);
             }
         }
+
+        SaveSecondaryCategory(item.PrimaryCategory);
     }
 }
 
@@ -184,7 +304,7 @@ public class ExpenditureItemList
 }
 
 [Serializable]
-public class StringListDictionary : SerializableDictionary<string, StringListItem> { }
+public class StringListDictionary : SerializableDictionary<string, string> { }
 
 [Serializable]
 public class StringIntDictionary : SerializableDictionary<string, int> { }
@@ -242,7 +362,7 @@ public struct StringListItem
 }
 
 [Serializable]
-public struct ExpenditureItem
+public struct ExpenditureItem : IComparable
 {
     public float Amount;
     public string PrimaryCategory;
@@ -261,5 +381,29 @@ public struct ExpenditureItem
         SecondaryCategory = secondaryCat.ToUpper();
         Description = desc;
         Date = new SerializableDatetime(date);
+    }
+
+    public int CompareTo(object obj)
+    {
+        try
+        {
+            ExpenditureItem other = (ExpenditureItem)obj;
+            if (other.Date.DateTime > Date.DateTime)
+            {
+                return 1;
+            }
+            else if (other.Date.DateTime < Date.DateTime)
+            {
+                return -1;
+            }
+            else
+            {
+                return 0;
+            }
+        }
+        catch
+        {
+            return 1;
+        }
     }
 }

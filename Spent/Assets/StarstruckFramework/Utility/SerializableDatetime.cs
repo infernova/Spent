@@ -4,6 +4,8 @@ using UnityEngine;
 [Serializable]
 public struct SerializableDatetime : ISerializationCallbackReceiver
 {
+    public const string DateTimeFormatString = "yyyy-MM-dd HH:mm:ss K";
+
     [SerializeField]
     private string mDateTimeString;
     private DateTime mDateTime;
@@ -14,33 +16,41 @@ public struct SerializableDatetime : ISerializationCallbackReceiver
         set
         {
             mDateTime = value;
-            mDateTimeString = mDateTime.ToString();
+            mDateTimeString = mDateTime.ToString(DateTimeFormatString,
+                                                 System.Globalization.CultureInfo.InvariantCulture);
         }
     }
 
     public SerializableDatetime(DateTime dt)
     {
-        mDateTime = dt;
-        mDateTimeString = mDateTime.ToString();
+        mDateTime = DateTime.SpecifyKind(dt.ToLocalTime(), DateTimeKind.Local);
+        mDateTimeString = mDateTime.ToString(DateTimeFormatString,
+                                             System.Globalization.CultureInfo.InvariantCulture);
     }
 
     #region ISerializationCallbackReceiver
 
-    void ISerializationCallbackReceiver.OnAfterDeserialize()
+    void UnityEngine.ISerializationCallbackReceiver.OnAfterDeserialize()
     {
-        if (!DateTime.TryParse(mDateTimeString, out mDateTime))
+        if (!DateTime.TryParseExact((string)mDateTimeString,
+                                    DateTimeFormatString,
+                                    System.Globalization.CultureInfo.InvariantCulture,
+                                    System.Globalization.DateTimeStyles.AssumeLocal,
+                                    out mDateTime)
+            && !DateTime.TryParse((string)mDateTimeString, out mDateTime))
         {
             DateTime = DateTime.MinValue;
         }
         else
         {
-            DateTime = mDateTime.ToUniversalTime();
+            DateTime = DateTime.SpecifyKind(mDateTime.ToLocalTime(), DateTimeKind.Local);
         }
     }
 
-    void ISerializationCallbackReceiver.OnBeforeSerialize()
+    void UnityEngine.ISerializationCallbackReceiver.OnBeforeSerialize()
     {
-        mDateTimeString = mDateTime.ToString();
+        mDateTimeString = mDateTime.ToString(DateTimeFormatString,
+                                             System.Globalization.CultureInfo.InvariantCulture);
     }
 
     #endregion
@@ -48,11 +58,6 @@ public struct SerializableDatetime : ISerializationCallbackReceiver
     public override string ToString()
     {
         return mDateTime.ToString();
-    }
-
-    public string ToString(string format)
-    {
-        return mDateTime.ToString(format);
     }
 
     public override bool Equals(object obj)
@@ -72,6 +77,11 @@ public struct SerializableDatetime : ISerializationCallbackReceiver
 
     public static implicit operator DateTime(SerializableDatetime value)
     {
-        return value.DateTime;
+        return DateTime.SpecifyKind(value.DateTime.ToLocalTime(), DateTimeKind.Local);
+    }
+
+    public string ToString(string format)
+    {
+        return mDateTime.ToString(format);
     }
 }

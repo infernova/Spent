@@ -46,16 +46,10 @@ MonoBehaviour:
   - List: []
   Items: []
   PrimaryCategories: []
-  SecondaryCategories:
+  SerializedSecondaryCategories:
     _keys: []
     _values: []
   LastUsedPrimaryCategories: []
-  LastUsedSecondaryCategories:
+  SerializedLastUsedSecondaryCategories:
     _keys: []
     _values: []
-  PrimaryCatCount:
-    _keys: []
-    _values: 
-  SecondaryCatCount:
-    _keys: []
-    _values: 

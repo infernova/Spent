@@ -28,7 +28,12 @@ public class ExpenditureListItem : GUILiteScrollListItem
         mButton.onClick.AddListener(() => MainScreen.Instance.SelectExpenditureItem(mIndex));
 	}
 
-    public void SetAsSelected(bool isSelected)
+    public void CheckIfSelected(int index)
+    {
+        SetAsSelected(mIndex == index);
+    }
+
+    private void SetAsSelected(bool isSelected)
     {
         if (isSelected)
         {
@@ -50,5 +55,7 @@ public class ExpenditureListItem : GUILiteScrollListItem
         mAmount.text = "$" + item.Amount.ToString("0.00");
         mPrimaryCat.text = item.PrimaryCategory;
         mSecondaryCat.text = item.SecondaryCategory;
+
+        SetAsSelected(index == MainScreen.Instance.EditIndex);
 	}
 }

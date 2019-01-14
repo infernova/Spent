@@ -95,6 +95,8 @@ public class MainScreen : SingletonBehavior<MainScreen>
             JsonUtility.FromJsonOverwrite(PlayerPrefs.GetString(SaveString), mStats);
         }
 
+        mStats.LoadCategories();
+
         CheckRecurringExpenditure();
     }
 
@@ -102,6 +104,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
 	{
         if (Application.isEditor)
         {
+            PlayerPrefs.SetString(SaveString, JsonUtility.ToJson(mStats));
             mStats.ClearStats();
         }
 	}
@@ -154,13 +157,16 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
         while (lastLoad < DateTime.UtcNow.Date)
         {
+            DateTime newDate = new DateTime(lastLoad.Year, lastLoad.Month, lastLoad.Day);
+            newDate = DateTime.SpecifyKind(newDate, DateTimeKind.Local);
+
             foreach(ExpenditureItem item in mStats.RecurringItems[lastLoad.Day].List)
             {
                 mStats.Add(new ExpenditureItem(item.Amount,
                                                item.PrimaryCategory,
                                                item.SecondaryCategory,
                                                item.Description,
-                                               lastLoad.Date));
+                                               newDate.Date));
             }
 
             lastLoad = lastLoad.AddDays(1.0f).Date;
@@ -326,7 +332,8 @@ public class MainScreen : SingletonBehavior<MainScreen>
             }
             else
             {
-                DateTime date = new DateTime(year, month, day);
+                DateTime date = new DateTime(year, month, day, DateTime.Now.Hour, DateTime.Now.Minute, DateTime.Now.Second);
+                date = DateTime.SpecifyKind(date, DateTimeKind.Local);
 
                 mStats.Add(new ExpenditureItem(amount,
                                                mPrimaryCatField.text,
@@ -409,14 +416,14 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
         if (text.Length > 0
             && (!mStats.SecondaryCategories.ContainsKey(mPrimaryCatField.text)
-            || !mStats.SecondaryCategories[mPrimaryCatField.text].Contains(text.ToUpper())))
+                || !mStats.SecondaryCategories[mPrimaryCatField.text].Contains(text.ToUpper().Trim())))
         {
-            mSecondaryCatOptions.Add(text.ToUpper());
+            mSecondaryCatOptions.Add(text.ToUpper().Trim());
         }
 
         if (text.Length == 0 && mStats.LastUsedSecondaryCategories.ContainsKey(mPrimaryCatField.text.ToUpper()))
         {
-            mSecondaryCatOptions = mStats.LastUsedSecondaryCategories[mPrimaryCatField.text.ToUpper()].List;
+            mSecondaryCatOptions = mStats.LastUsedSecondaryCategories[mPrimaryCatField.text.ToUpper()];
         }
 
         mSecondaryCatDropdown.UpdateOptions(mSecondaryCatOptions, false);
@@ -435,7 +442,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
     [SerializeField]
     private Button mRemoveExpenditureButton;
     private int mEditIndex = -1;
-    private int EditIndex
+    public int EditIndex
     {
         get { return mEditIndex; }
         set
@@ -451,7 +458,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
             for (int i = 0; i < mExpenditureList.ItemList.Count; i++)
             {
-                ((ExpenditureListItem)mExpenditureList.ItemList[i]).SetAsSelected(i == mEditIndex);
+                ((ExpenditureListItem)mExpenditureList.ItemList[i]).CheckIfSelected(mEditIndex);
             }
 
             mEditExpenditureButton.interactable = EditIndex != -1;
@@ -491,6 +498,9 @@ public class MainScreen : SingletonBehavior<MainScreen>
     public void CancelEdit()
     {
         EditIndex = -1;
+
+        LoadBlankExpenditure();
+
         mExpenditureListContainer.SetActive(true);
         mAddExpenditureContainer.SetActive(false);
     }
@@ -501,19 +511,27 @@ public class MainScreen : SingletonBehavior<MainScreen>
         int month = int.Parse(mMonthField.text);
         int year = int.Parse(mYearField.text);
 
-        DateTime date = new DateTime(year, month, day);
+        DateTime editDateTime = mStats.Items[EditIndex].Date.DateTime;
+
+        DateTime date = new DateTime(year, month, day, editDateTime.Hour, editDateTime.Minute, editDateTime.Second);
+        date = DateTime.SpecifyKind(date, DateTimeKind.Local);
+
         float amount = float.Parse(mAmountField.text);
 
-        mStats.Edit(mStats.Items[EditIndex],
-                    new ExpenditureItem(amount,
-                                        mPrimaryCatField.text,
-                                        mSecondaryCatField.text,
-                                        mDescriptionField.text,
-                                        date));
+        mStats.Remove(EditIndex);
+        mStats.Add(new ExpenditureItem(amount,
+                                       mPrimaryCatField.text,
+                                       mSecondaryCatField.text,
+                                       mDescriptionField.text,
+                                       date));
 
         EditIndex = -1;
+
+        LoadBlankExpenditure();
+
         mExpenditureListContainer.SetActive(true);
         mAddExpenditureContainer.SetActive(false);
+        LoadExpenditureList();
     }
 
     public void RemoveExpenditure()
@@ -628,23 +646,29 @@ public class CostBreakdownItem : IComparable
         Percentage = percentage;
     }
 
-    int IComparable.CompareTo (object other)
+    public int CompareTo(object obj)
     {
-        if (other.GetType() != typeof(CostBreakdownItem))
+        if (obj == null) return 1;
+
+        CostBreakdownItem other = obj as CostBreakdownItem;
+        if (other != null)
         {
-            return 0;
-        }
-        if (((CostBreakdownItem)other).Amount > Amount)
-        {
-            return 1;
-        }
-        else if (((CostBreakdownItem)other).Amount < Amount)
-        {
-            return -1;
+            if (other.Amount > Amount)
+            {
+                return 1;
+            }
+            else if (other.Amount < Amount)
+            {
+                return -1;
+            }
+            else
+            {
+                return 0;
+            }
         }
         else
         {
-            return 0;
+            return 1;
         }
     }
 }
