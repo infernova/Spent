@@ -44,12 +44,19 @@ MonoBehaviour:
   - List: []
   - List: []
   - List: []
+  RecurringItemList: []
   Items: []
   PrimaryCategories: []
+  LastUsedPrimaryCategories: []
+  PrimaryCatCount:
+    _keys: []
+    _values: 
   SerializedSecondaryCategories:
     _keys: []
     _values: []
-  LastUsedPrimaryCategories: []
   SerializedLastUsedSecondaryCategories:
     _keys: []
     _values: []
+  SerializedSecondaryCatCount:
+    _keys: []
+    _values: 

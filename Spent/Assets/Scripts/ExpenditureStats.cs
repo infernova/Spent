@@ -7,6 +7,7 @@ using StarstruckFramework;
 public class ExpenditureStats : ScriptableObject
 {
     public ExpenditureItemList[] RecurringItems = new ExpenditureItemList[32];
+    public List<ExpenditureItem> RecurringItemList = new List<ExpenditureItem>();
     public List<ExpenditureItem> Items = new List<ExpenditureItem>();
 
     public List<string> PrimaryCategories = new List<string>();
@@ -47,6 +48,18 @@ public class ExpenditureStats : ScriptableObject
             }
 
             SecondaryCatCount[idArray[0]].Add(idArray[1], pair.Value);
+        }
+    }
+
+    public void LoadRecurringExpenditureList()
+    {
+        RecurringItemList = new List<ExpenditureItem>();
+        foreach(ExpenditureItemList list in RecurringItems)
+        {
+            foreach(ExpenditureItem item in list.List)
+            {
+                RecurringItemList.Add(item);
+            }
         }
     }
 
@@ -125,9 +138,29 @@ public class ExpenditureStats : ScriptableObject
         SerializedSecondaryCatCount = new StringIntDictionary();
     }
 
-    public void AddRecurringExpenditure(ExpenditureItem item, int day)
+    public void AddRecurringExpenditure(ExpenditureItem item)
     {
-        RecurringItems[day].Add(item);
+        RecurringItemList.Add(item);
+        RecurringItems[item.Date.DateTime.Day].Add(item);
+    }
+
+    public void RemoveRecurringExpenditure(int index)
+    {
+        ExpenditureItem toRemove = RecurringItemList[index];
+        List<ExpenditureItem> list = RecurringItems[toRemove.Date.DateTime.Day].List;
+        for (int i = list.Count - 1; i >= 0; i--)
+        {
+            ExpenditureItem currItem = list[i];
+            if (currItem.Amount == toRemove.Amount
+                && currItem.PrimaryCategory == toRemove.PrimaryCategory
+                && currItem.SecondaryCategory == toRemove.SecondaryCategory)
+            {
+                list.RemoveAt(i);
+                break;
+            }
+        }
+
+        RecurringItemList.RemoveAt(index);
     }
 
     public void Add(ExpenditureItem item)
@@ -235,12 +268,19 @@ public class ExpenditureStats : ScriptableObject
             SerializedSecondaryCategories.Remove(item.PrimaryCategory);
             SecondaryCatCount.Remove(item.PrimaryCategory);
 
+            List<string> secondCatToRemove = new List<string>();
+
             foreach (string key in SerializedSecondaryCatCount.Keys)
             {
                 if (key.StartsWith(item.PrimaryCategory + "\t", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    SerializedSecondaryCatCount.Remove(key);
+                    secondCatToRemove.Add(key);
                 }
+            }
+
+            foreach (string key in secondCatToRemove)
+            {
+                SerializedSecondaryCatCount.Remove(key);
             }
 
             LastUsedSecondaryCategories.Remove(item.PrimaryCategory);

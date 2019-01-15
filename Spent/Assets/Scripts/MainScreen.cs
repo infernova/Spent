@@ -13,16 +13,29 @@ public class MainScreen : SingletonBehavior<MainScreen>
     {
         if (mAddExpenditureContainer.activeSelf)
         {
-            if (EditIndex == -1 && !mAddExpenditureButton.activeSelf)
+            if (EditIndex == -1 && RecurringEditIndex == -1 && !mAddExpenditureButton.activeSelf)
             {
                 mEditExpenditureButtonContainer.SetActive(false);
+                mEditRecurringExpenditureButtonContainer.SetActive(false);
                 mAddExpenditureButton.SetActive(true);
             }
             else if (EditIndex != -1 && !mEditExpenditureButtonContainer.activeSelf)
             {
                 mEditExpenditureButtonContainer.SetActive(true);
+                mEditRecurringExpenditureButtonContainer.SetActive(false);
                 mAddExpenditureButton.SetActive(false);
             }
+            else if (RecurringEditIndex != -1 && !mEditRecurringExpenditureButtonContainer.activeSelf)
+            {
+                mEditExpenditureButtonContainer.SetActive(false);
+                mEditRecurringExpenditureButtonContainer.SetActive(true);
+                mAddExpenditureButton.SetActive(false);
+            }
+        }
+
+        if (mAddExpenditureContainer.activeSelf)
+        {
+            
         }
 
         if (mPrimaryCatField.isFocused)
@@ -37,6 +50,14 @@ public class MainScreen : SingletonBehavior<MainScreen>
             mPrimaryCatDropdown.gameObject.SetActive(false);
             mSecondaryCatDropdown.gameObject.SetActive(true);
             mCategoryBlackout.gameObject.SetActive(true);
+        }
+
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            mAddExpenditureContainer.SetActive(true);
+            mExpenditureListContainer.SetActive(false);
+            mCostBreakdownContainer.SetActive(false);
+            mRecurringExpenditureListContainer.SetActive(false);
         }
     }
 
@@ -96,6 +117,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
         }
 
         mStats.LoadCategories();
+        mStats.LoadRecurringExpenditureList();
 
         CheckRecurringExpenditure();
     }
@@ -182,6 +204,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
         mAddExpenditureContainer.SetActive(true);
         mExpenditureListContainer.SetActive(false);
         mCostBreakdownContainer.SetActive(false);
+        mRecurringExpenditureListContainer.SetActive(false);
 
         mDayField.text = DateTime.Now.ToString("dd");
         mMonthField.text = DateTime.Now.ToString("MM");
@@ -193,6 +216,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
         mDescriptionField.text = string.Empty;
 
         mIsRecurring.isOn = false;
+        mIsRecurring.interactable = true;
         OnRecurringValueChange(mIsRecurring.isOn);
 
         OnDateEndEdit();
@@ -327,8 +351,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
                                                                    mPrimaryCatField.text,
                                                                    mSecondaryCatField.text,
                                                                    mDescriptionField.text,
-                                                                   DateTime.MinValue),
-                                               day);
+                                                                   new DateTime(2000, 1, day)));
             }
             else
             {
@@ -493,6 +516,9 @@ public class MainScreen : SingletonBehavior<MainScreen>
         mPrimaryCatField.text = item.PrimaryCategory;
         mSecondaryCatField.text = item.SecondaryCategory;
         mDescriptionField.text = item.Description;
+
+        mIsRecurring.isOn = false;
+        mIsRecurring.interactable = false;
     }
 
     public void CancelEdit()
@@ -629,6 +655,115 @@ public class MainScreen : SingletonBehavior<MainScreen>
     public void SelectCostBreakdownItem(int index)
     {
         CostBreakdownIndex = index;
+    }
+    #endregion
+
+    #region Recurring Expenditure List
+    [SerializeField]
+    private GameObject mRecurringExpenditureListContainer;
+    [SerializeField]
+    private GameObject mEditRecurringExpenditureButtonContainer;
+    [SerializeField]
+    private GUILiteScrollList mRecurringExpenditureList;
+    [SerializeField]
+    private Button mEditRecurringExpenditureButton;
+    [SerializeField]
+    private Button mRemoveRecurringExpenditureButton;
+    private int mRecurringEditIndex = -1;
+    public int RecurringEditIndex
+    {
+        get { return mRecurringEditIndex; }
+        set
+        {
+            if (mRecurringEditIndex == value)
+            {
+                mRecurringEditIndex = -1;
+            }
+            else
+            {
+                mRecurringEditIndex = value;
+            }
+
+            for (int i = 0; i < mRecurringExpenditureList.ItemList.Count; i++)
+            {
+                ((RecurringExpenditureItem)mRecurringExpenditureList.ItemList[i]).CheckIfSelected(mRecurringEditIndex);
+            }
+
+            mEditRecurringExpenditureButton.interactable = mRecurringEditIndex != -1;
+            mRemoveRecurringExpenditureButton.interactable = mRecurringEditIndex != -1;
+        }
+    }
+
+    public void LoadRecurringExpenditureList()
+    {
+        mRecurringExpenditureListContainer.SetActive(true);
+        mRecurringExpenditureList.Init(mStats.RecurringItemList.Count);
+        RecurringEditIndex = -1;
+    }
+
+    public void SelectRecurringExpenditureItem(int index)
+    {
+        RecurringEditIndex = index;
+    }
+
+    public void StartRecurringItemEdit()
+    {
+        mRecurringExpenditureListContainer.SetActive(false);
+        mAddExpenditureContainer.SetActive(true);
+
+        ExpenditureItem item = mStats.RecurringItemList[RecurringEditIndex];
+
+        mDayField.text = item.Date.ToString("dd");
+        mMonthField.text = item.Date.ToString("MM");
+        mYearField.text = item.Date.ToString("yyyy");
+
+        mAmountField.text = item.Amount.ToString("0.00");
+        mPrimaryCatField.text = item.PrimaryCategory;
+        mSecondaryCatField.text = item.SecondaryCategory;
+        mDescriptionField.text = item.Description;
+
+        mIsRecurring.isOn = true;
+        mIsRecurring.interactable = false;
+    }
+
+    public void CancelRecurringEdit()
+    {
+        RecurringEditIndex = -1;
+
+        LoadBlankExpenditure();
+
+        mRecurringExpenditureListContainer.SetActive(true);
+        mAddExpenditureContainer.SetActive(false);
+    }
+
+    public void ConfirmRecurringEdit()
+    {
+        int day = int.Parse(mDayField.text);
+
+        DateTime date = new DateTime(2000, 1, day);
+        date = DateTime.SpecifyKind(date, DateTimeKind.Local);
+
+        float amount = float.Parse(mAmountField.text);
+
+        mStats.RemoveRecurringExpenditure(RecurringEditIndex);
+        mStats.AddRecurringExpenditure(new ExpenditureItem(amount,
+                                       mPrimaryCatField.text,
+                                       mSecondaryCatField.text,
+                                       mDescriptionField.text,
+                                       date));
+        RecurringEditIndex = -1;
+
+        LoadBlankExpenditure();
+
+        mRecurringExpenditureListContainer.SetActive(true);
+        mAddExpenditureContainer.SetActive(false);
+        LoadRecurringExpenditureList();
+    }
+
+    public void RemoveRecurringExpenditure()
+    {
+        mStats.RemoveRecurringExpenditure(RecurringEditIndex);
+        LoadRecurringExpenditureList();
     }
     #endregion
 }
