@@ -50,7 +50,7 @@ public class ExpenditureListItem : GUILiteScrollListItem
         base.ResetPosition(index);
         mIndex = index;
 
-        ExpenditureItem item = mStats.Items[index];
+        ExpenditureItem item = mStats.DisplayedItems[index];
         mDate.text = item.Date.ToString("dd/MM/yy");
         mAmount.text = "$" + item.Amount.ToString("0.00");
         mPrimaryCat.text = item.PrimaryCategory;

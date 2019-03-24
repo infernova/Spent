@@ -25,6 +25,172 @@ public class ExpenditureStats : ScriptableObject
     [SerializeField]
     private StringIntDictionary SerializedSecondaryCatCount = new StringIntDictionary();
 
+    private List<ExpenditureItem> mDisplayedItems = new List<ExpenditureItem>();
+    public List<ExpenditureItem> DisplayedItems
+    {
+        get { return mDisplayedItems; }
+    }
+
+    private DateTime mDateRange;
+    public DateTime DateRange
+    {
+        get { return mDateRange; }
+        private set
+        {
+            mDateRange = value;
+            RefreshDisplayedItems();
+        }
+    }
+
+    public void RefreshDisplayedItems()
+    {
+        mDisplayedItems = GetDisplayedItems();
+    }
+
+    private List<ExpenditureItem> GetDisplayedItems()
+    {
+        if (DateRange.Year == 1)
+        {
+            return new List<ExpenditureItem>(Items);
+        }
+
+        DateTime dateRangeStart = new DateTime(DateRange.Year, DateRange.Month, 1);
+        DateTime dateRangeEnd = dateRangeStart.AddMonths(1).AddDays(-1).Date;
+
+        int startIndex = 0;
+        int endIndex = Items.Count - 1;
+
+        int midPoint = 0;
+        DateTime midItemDate = DateTime.MinValue;
+
+        do
+        {
+            midPoint = (endIndex + startIndex) / 2;
+
+            if (midPoint < 0 || midPoint >= Items.Count)
+            {
+                return new List<ExpenditureItem>();
+            }
+
+            midItemDate = Items[midPoint].Date.DateTime.Date;
+
+            if (endIndex != midPoint && midItemDate < dateRangeStart)
+            {
+                endIndex = midPoint;
+            }
+            else if (startIndex != midPoint && midItemDate > dateRangeEnd)
+            {
+                startIndex = midPoint;
+            }
+        }
+        while ((endIndex != midPoint && midItemDate < dateRangeStart)
+        || (startIndex != midPoint && midItemDate > dateRangeEnd));
+
+        while (Items[startIndex].Date.DateTime.Date > dateRangeEnd)
+        {
+            int firstQuater = (startIndex + midPoint) / 2;
+            DateTime firstQuarterDate = Items[firstQuater].Date.DateTime.Date;
+
+            if (startIndex != firstQuater && firstQuarterDate > dateRangeEnd)
+            {
+                startIndex = firstQuater;
+            }
+            else
+            {
+                while (startIndex < endIndex && Items[startIndex].Date.DateTime.Date > dateRangeEnd)
+                {
+                    startIndex++;
+                }
+            }
+        }
+
+        while (Items[endIndex].Date.DateTime.Date < dateRangeStart)
+        {
+            int thirdQuater = (endIndex + midPoint) / 2;
+            DateTime thirdQuarterDate = Items[thirdQuater].Date.DateTime.Date;
+
+            if (endIndex != thirdQuater && thirdQuarterDate < dateRangeStart)
+            {
+                endIndex = thirdQuater;
+            }
+            else
+            {
+                while (startIndex < endIndex && Items[endIndex].Date.DateTime.Date < dateRangeStart)
+                {
+                    endIndex--;
+                }
+            }
+        }
+
+        List<ExpenditureItem> resultList = new List<ExpenditureItem>();
+
+        if (startIndex == endIndex)
+        {
+            DateTime singleDate = Items[endIndex].Date.DateTime.Date;
+
+            if (singleDate < dateRangeStart || singleDate > dateRangeEnd)
+            {
+                return resultList;
+            }
+        }
+
+        for (int i = startIndex; i <= endIndex; i++)
+        {
+            resultList.Add(Items[i]);
+        }
+
+        return resultList;
+    }
+
+    public void IncrementDateRange()
+    {
+        if (DateRange.Year == 1)
+        {
+            ExpenditureItem lastItem = Items[Items.Count - 1];
+            DateTime lastItemDate = lastItem.Date;
+            DateRange = new DateTime(lastItemDate.Year, lastItemDate.Month, 1);
+        }
+        else
+        {
+            DateTime newDateTime = DateRange.AddMonths(1);
+            if (newDateTime.Date > DateTime.Now.Date)
+            {
+                newDateTime = new DateTime(1, 1, 1);
+            }
+
+            DateRange = new DateTime(newDateTime.Year, newDateTime.Month, 1);
+        }
+    }
+
+    public void DecrementDateRange()
+    {
+        if (DateRange.Year == 1)
+        {
+            DateRange = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+        }
+        else
+        {
+            DateTime newDateTime = DateRange.AddMonths(-1);
+            newDateTime = new DateTime(newDateTime.Year, newDateTime.Month, 1);
+
+            ExpenditureItem lastItem = Items[Items.Count - 1];
+            DateTime lastItemDate = lastItem.Date;
+            lastItemDate = new DateTime(lastItemDate.Year, lastItemDate.Month, 1);
+
+            if (newDateTime.Date < lastItemDate.Date)
+            {
+                newDateTime = new DateTime(1, 1, 1);
+            }
+
+            DateRange = newDateTime;
+        }
+    }
+
+    public void RefreshDateRange()
+    {
+        DateRange = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+    }
+
     public void LoadCategories()
     {
         SecondaryCategories = new Dictionary<string, List<string>>();
@@ -445,5 +611,56 @@ public struct ExpenditureItem : IComparable
         {
             return 1;
         }
+    }
+
+    public override bool Equals(object obj)
+    {
+        if (!(obj is ExpenditureItem))
+        {
+            return false;
+        }
+
+        if (ReferenceEquals(this, obj))
+        {
+            return true;
+        }
+
+        return GetHashCode() == obj.GetHashCode();
+    }
+
+    public override int GetHashCode()
+    {
+        unchecked // Overflow is fine, just wrap
+        {
+            int hash = 597581;
+            // Suitable nullity checks etc, of course :)
+            hash = hash * 314263 + Amount.GetHashCode();
+            hash = hash * 314263 + PrimaryCategory.GetHashCode();
+            hash = hash * 314263 + SecondaryCategory.GetHashCode();
+            hash = hash * 314263 + Description.GetHashCode();
+            hash = hash * 314263 + Date.GetHashCode();
+
+            return hash;
+        }
+    }
+
+    public static bool operator ==(ExpenditureItem a, ExpenditureItem b)
+    {
+        if (ReferenceEquals(a, b))
+        {
+            return true;
+        }
+
+        return a.Equals(b);
+    }
+
+    public static bool operator !=(ExpenditureItem a, ExpenditureItem b)
+    {
+        if (ReferenceEquals(a, b))
+        {
+            return false;
+        }
+
+        return !a.Equals(b);
     }
 }
