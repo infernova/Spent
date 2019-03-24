@@ -6,9 +6,9 @@ using StarstruckFramework;
 [CreateAssetMenu]
 public class ExpenditureStats : ScriptableObject
 {
-    public ExpenditureItemList[] RecurringItems = new ExpenditureItemList[32];
-    public List<ExpenditureItem> RecurringItemList = new List<ExpenditureItem>();
     public List<ExpenditureItem> Items = new List<ExpenditureItem>();
+
+    public long EditCount;
 
     public List<string> PrimaryCategories = new List<string>();
     public List<string> LastUsedPrimaryCategories = new List<string>();
@@ -25,45 +25,144 @@ public class ExpenditureStats : ScriptableObject
     [SerializeField]
     private StringIntDictionary SerializedSecondaryCatCount = new StringIntDictionary();
 
+    public void CopyExpenditures(ExpenditureStats reference)
+    {
+        Items = new List<ExpenditureItem>();
+
+        PrimaryCategories = new List<string>();
+        LastUsedPrimaryCategories = new List<string>();
+        PrimaryCatCount = new StringIntDictionary();
+
+        SecondaryCategories = new Dictionary<string, List<string>>();
+        LastUsedSecondaryCategories = new Dictionary<string, List<string>>();
+        SecondaryCatCount = new Dictionary<string, Dictionary<string, int>>();
+
+        EditCount = reference.EditCount;
+
+        foreach(ExpenditureItem item in reference.Items)
+        {
+            Items.Add(item.Copy());
+        }
+
+        PrimaryCategories = new List<string>(reference.PrimaryCategories);
+        LastUsedPrimaryCategories = new List<string>(reference.LastUsedPrimaryCategories);
+
+        if (reference.PrimaryCatCount.Count > 0)
+        {
+            foreach (KeyValuePair<string, int> pair in reference.PrimaryCatCount)
+            {
+                PrimaryCatCount.Add(pair.Key, pair.Value);
+            }
+        }
+
+        if (reference.SecondaryCategories.Count > 0)
+        {
+            foreach (KeyValuePair<string, List<string>> pair in reference.SecondaryCategories)
+            {
+                SecondaryCategories.Add(pair.Key, new List<string>(pair.Value));
+            }
+        }
+
+        if (reference.LastUsedSecondaryCategories.Count > 0)
+        {
+            foreach (KeyValuePair<string, List<string>> pair in reference.LastUsedSecondaryCategories)
+            {
+                LastUsedSecondaryCategories.Add(pair.Key, new List<string>(pair.Value));
+            }
+        }
+
+        if (reference.SecondaryCatCount.Count > 0)
+        {
+            foreach (KeyValuePair<string, Dictionary<string, int>> pair in reference.SecondaryCatCount)
+            {
+                SecondaryCatCount.Add(pair.Key, new Dictionary<string, int>(pair.Value));
+            }
+        }
+
+        SerializeCategories();
+    }
+
     public void LoadCategories()
     {
         SecondaryCategories = new Dictionary<string, List<string>>();
-        foreach (KeyValuePair<string, string> pair in SerializedSecondaryCategories)
+        if (SerializedSecondaryCategories.Count > 0)
         {
-            SecondaryCategories.Add(pair.Key, new List<string>(pair.Value.Split('\t')));
+            foreach (KeyValuePair<string, string> pair in SerializedSecondaryCategories)
+            {
+                SecondaryCategories.Add(pair.Key, new List<string>(pair.Value.Split('\t')));
+            }
         }
 
         LastUsedSecondaryCategories = new Dictionary<string, List<string>>();
-        foreach (KeyValuePair<string, string> pair in SerializedLastUsedSecondaryCategories)
+        if (SerializedLastUsedSecondaryCategories.Count > 0)
         {
-            LastUsedSecondaryCategories.Add(pair.Key, new List<string>(pair.Value.Split('\t')));
+            foreach (KeyValuePair<string, string> pair in SerializedLastUsedSecondaryCategories)
+            {
+                LastUsedSecondaryCategories.Add(pair.Key, new List<string>(pair.Value.Split('\t')));
+            }
         }
 
-        foreach (KeyValuePair<string, int> pair in SerializedSecondaryCatCount)
+        if (SerializedSecondaryCatCount.Count > 0)
         {
-            string[] idArray = pair.Key.Split('\t');
-            if (!SecondaryCatCount.ContainsKey(idArray[0]))
+            foreach (KeyValuePair<string, int> pair in SerializedSecondaryCatCount)
             {
-                SecondaryCatCount.Add(idArray[0], new Dictionary<string, int>());
-            }
+                string[] idArray = pair.Key.Split('\t');
+                if (!SecondaryCatCount.ContainsKey(idArray[0]))
+                {
+                    SecondaryCatCount.Add(idArray[0], new Dictionary<string, int>());
+                }
 
-            SecondaryCatCount[idArray[0]].Add(idArray[1], pair.Value);
+                SecondaryCatCount[idArray[0]].Add(idArray[1], pair.Value);
+            }
         }
     }
 
-    public void LoadRecurringExpenditureList()
+    private void SerializeCategories()
     {
-        RecurringItemList = new List<ExpenditureItem>();
-        foreach(ExpenditureItemList list in RecurringItems)
+        SerializedSecondaryCategories = new StringListDictionary();
+        SerializedLastUsedSecondaryCategories = new StringListDictionary();
+        SerializedSecondaryCatCount = new StringIntDictionary();
+
+        foreach (KeyValuePair<string, List<string>> pair in SecondaryCategories)
         {
-            foreach(ExpenditureItem item in list.List)
+            System.Text.StringBuilder stringBuilder = new System.Text.StringBuilder();
+            for (int i = 0; i < pair.Value.Count; i++)
             {
-                RecurringItemList.Add(item);
+                stringBuilder.Append(pair.Value[i]);
+                if (i < pair.Value.Count - 1)
+                {
+                    stringBuilder.Append("\t");
+                }
+            }
+
+            SerializedSecondaryCategories.Add(pair.Key, stringBuilder.ToString());
+        }
+
+        foreach (KeyValuePair<string, List<string>> pair in LastUsedSecondaryCategories)
+        {
+            System.Text.StringBuilder stringBuilder = new System.Text.StringBuilder();
+            for (int i = 0; i < pair.Value.Count; i++)
+            {
+                stringBuilder.Append(pair.Value[i]);
+                if (i < pair.Value.Count - 1)
+                {
+                    stringBuilder.Append("\t");
+                }
+            }
+
+            SerializedLastUsedSecondaryCategories.Add(pair.Key, stringBuilder.ToString());
+        }
+
+        foreach (KeyValuePair<string, Dictionary<string, int>> pair in SecondaryCatCount)
+        {
+            foreach (KeyValuePair<string, int> dictPair in pair.Value)
+            {
+                SerializedSecondaryCatCount.Add(pair.Key + "\t" + dictPair.Key, dictPair.Value);
             }
         }
     }
 
-    public void SaveSecondaryCategory(string priCat)
+    private void SaveSecondaryCategory(string priCat)
     {
         if (!SecondaryCategories.ContainsKey(priCat) && SerializedSecondaryCategories.ContainsKey(priCat))
         {
@@ -120,49 +219,6 @@ public class ExpenditureStats : ScriptableObject
         }
     }
 
-    public void ClearStats()
-    {
-        RecurringItems = new ExpenditureItemList[32];
-        Items = new List<ExpenditureItem>();
-
-        PrimaryCategories = new List<string>();
-        LastUsedPrimaryCategories = new List<string>();
-        PrimaryCatCount = new StringIntDictionary();
-
-        SecondaryCategories = new Dictionary<string, List<string>>();
-        LastUsedSecondaryCategories = new Dictionary<string, List<string>>();
-        SecondaryCatCount = new Dictionary<string, Dictionary<string, int>>();
-
-        SerializedSecondaryCategories = new StringListDictionary();
-        SerializedLastUsedSecondaryCategories = new StringListDictionary();
-        SerializedSecondaryCatCount = new StringIntDictionary();
-    }
-
-    public void AddRecurringExpenditure(ExpenditureItem item)
-    {
-        RecurringItemList.Add(item);
-        RecurringItems[item.Date.DateTime.Day].Add(item);
-    }
-
-    public void RemoveRecurringExpenditure(int index)
-    {
-        ExpenditureItem toRemove = RecurringItemList[index];
-        List<ExpenditureItem> list = RecurringItems[toRemove.Date.DateTime.Day].List;
-        for (int i = list.Count - 1; i >= 0; i--)
-        {
-            ExpenditureItem currItem = list[i];
-            if (currItem.Amount == toRemove.Amount
-                && currItem.PrimaryCategory == toRemove.PrimaryCategory
-                && currItem.SecondaryCategory == toRemove.SecondaryCategory)
-            {
-                list.RemoveAt(i);
-                break;
-            }
-        }
-
-        RecurringItemList.RemoveAt(index);
-    }
-
     public void Add(ExpenditureItem item)
     {
         Items.Insert(0, item);
@@ -200,9 +256,11 @@ public class ExpenditureStats : ScriptableObject
         }
 
         AddCategory(item);
+
+        EditCount++;
     }
 
-    public void AddCategory(ExpenditureItem item)
+    private void AddCategory(ExpenditureItem item)
     {
         if (!PrimaryCategories.Contains(item.PrimaryCategory))
         {
@@ -247,15 +305,11 @@ public class ExpenditureStats : ScriptableObject
     {
         RemoveCategory(Items[index]);
         Items.RemoveAt(index);
+
+        EditCount++;
     }
 
-    public void Remove(ExpenditureItem item)
-    {
-        Items.Remove(item);
-        RemoveCategory(item);
-    }
-
-    public void RemoveCategory(ExpenditureItem item)
+    private void RemoveCategory(ExpenditureItem item)
     {
         PrimaryCatCount[item.PrimaryCategory]--;
 
@@ -304,7 +358,7 @@ public class ExpenditureStats : ScriptableObject
 [Serializable]
 public class ExpenditureItemList
 {
-    public List<ExpenditureItem> List;
+    public List<ExpenditureItem> List = new List<ExpenditureItem>();
 
     public bool Contains(ExpenditureItem s)
     {
@@ -421,6 +475,15 @@ public struct ExpenditureItem : IComparable
         SecondaryCategory = secondaryCat.ToUpper();
         Description = desc;
         Date = new SerializableDatetime(date);
+    }
+
+    public ExpenditureItem Copy()
+    {
+        return new ExpenditureItem(Amount,
+                                   PrimaryCategory,
+                                   SecondaryCategory,
+                                   Description,
+                                   Date.DateTime);
     }
 
     public int CompareTo(object obj)

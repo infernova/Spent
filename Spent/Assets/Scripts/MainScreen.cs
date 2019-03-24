@@ -102,34 +102,53 @@ public class MainScreen : SingletonBehavior<MainScreen>
     private List<string> mSecondaryCatOptions = new List<string>();
 
     private const string SaveString = "Save";
+    private const string BackupString = "Backup";
+    private const string RecurringString = "Recurring";
+
     private const string CurrDateSaveString = "CurrDate";
 
     [SerializeField]
-    private ExpenditureStats mStats;
+    private ExpenditureStats mBackup;
+    public ExpenditureStats Expenditures;
+
+    public RecurringExpenditureStats RecurringExpense;
 
     private void Start()
     {
         LoadBlankExpenditure();
 
+        Expenditures = ScriptableObject.CreateInstance<ExpenditureStats>();
+        mBackup = ScriptableObject.CreateInstance<ExpenditureStats>();
+
+        RecurringExpense = ScriptableObject.CreateInstance<RecurringExpenditureStats>();
+
         if (PlayerPrefs.HasKey(SaveString))
         {
-            JsonUtility.FromJsonOverwrite(PlayerPrefs.GetString(SaveString), mStats);
+            JsonUtility.FromJsonOverwrite(PlayerPrefs.GetString(SaveString), Expenditures);
         }
 
-        mStats.LoadCategories();
-        mStats.LoadRecurringExpenditureList();
+        if (PlayerPrefs.HasKey(RecurringString))
+        {
+            JsonUtility.FromJsonOverwrite(PlayerPrefs.GetString(RecurringString), RecurringExpense);
+        }
+
+        if (PlayerPrefs.HasKey(BackupString))
+        {
+            JsonUtility.FromJsonOverwrite(PlayerPrefs.GetString(BackupString), mBackup);
+        }
+
+        if (mBackup.EditCount > Expenditures.EditCount)
+        {
+            Expenditures.CopyExpenditures(mBackup);
+        }
+
+        Expenditures.LoadCategories();
+        mBackup.LoadCategories();
+
+        RecurringExpense.LoadRecurringExpenditureList();
 
         CheckRecurringExpenditure();
     }
-
-	private void OnApplicationQuit()
-	{
-        if (Application.isEditor)
-        {
-            PlayerPrefs.SetString(SaveString, JsonUtility.ToJson(mStats));
-            mStats.ClearStats();
-        }
-	}
 
 	private void OnApplicationPause(bool pause)
 	{
@@ -156,10 +175,6 @@ public class MainScreen : SingletonBehavior<MainScreen>
                 
             }
         }
-        else
-        {
-            PlayerPrefs.SetString(SaveString, JsonUtility.ToJson(mStats));
-        }
 	}
 
     private void CheckRecurringExpenditure()
@@ -172,6 +187,9 @@ public class MainScreen : SingletonBehavior<MainScreen>
             return;
         }
 
+        ExpenditureStats backup = ScriptableObject.CreateInstance<ExpenditureStats>();
+        backup.CopyExpenditures(Expenditures);
+
         DateTime lastLoad = DateTime.ParseExact(PlayerPrefs.GetString(CurrDateSaveString),
                                                 DateTimeFormatString,
                                                 System.Globalization.CultureInfo.InvariantCulture,
@@ -182,9 +200,9 @@ public class MainScreen : SingletonBehavior<MainScreen>
             DateTime newDate = new DateTime(lastLoad.Year, lastLoad.Month, lastLoad.Day);
             newDate = DateTime.SpecifyKind(newDate, DateTimeKind.Local);
 
-            foreach(ExpenditureItem item in mStats.RecurringItems[lastLoad.Day].List)
+            foreach(ExpenditureItem item in RecurringExpense.RecurringItems[lastLoad.Day].List)
             {
-                mStats.Add(new ExpenditureItem(item.Amount,
+                Expenditures.Add(new ExpenditureItem(item.Amount,
                                                item.PrimaryCategory,
                                                item.SecondaryCategory,
                                                item.Description,
@@ -197,6 +215,18 @@ public class MainScreen : SingletonBehavior<MainScreen>
         PlayerPrefs.SetString(CurrDateSaveString,
                               DateTime.UtcNow.Date.ToString(DateTimeFormatString,
                                                             System.Globalization.CultureInfo.InvariantCulture));
+
+        if (Expenditures.EditCount > mBackup.EditCount)
+        {
+            mBackup = backup;
+        }
+        else if (mBackup.EditCount > Expenditures.EditCount)
+        {
+            Expenditures.CopyExpenditures(mBackup);
+        }
+
+        PlayerPrefs.SetString(SaveString, JsonUtility.ToJson(Expenditures));
+        PlayerPrefs.SetString(BackupString, JsonUtility.ToJson(mBackup));
     }
 
 	private void LoadBlankExpenditure()
@@ -347,22 +377,39 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
             if (mIsRecurring.isOn)
             {
-                mStats.AddRecurringExpenditure(new ExpenditureItem(amount,
-                                                                   mPrimaryCatField.text,
-                                                                   mSecondaryCatField.text,
-                                                                   mDescriptionField.text,
-                                                                   new DateTime(2000, 1, day)));
+                RecurringExpense.AddRecurringExpenditure(new ExpenditureItem(amount,
+                                                                       mPrimaryCatField.text,
+                                                                       mSecondaryCatField.text,
+                                                                       mDescriptionField.text,
+                                                                       new DateTime(2000, 1, day)));
+
+                PlayerPrefs.SetString(RecurringString, JsonUtility.ToJson(RecurringExpense));
             }
             else
             {
+                ExpenditureStats backup = ScriptableObject.CreateInstance<ExpenditureStats>();
+                backup.CopyExpenditures(Expenditures);
+
                 DateTime date = new DateTime(year, month, day, DateTime.Now.Hour, DateTime.Now.Minute, DateTime.Now.Second);
                 date = DateTime.SpecifyKind(date, DateTimeKind.Local);
 
-                mStats.Add(new ExpenditureItem(amount,
+                Expenditures.Add(new ExpenditureItem(amount,
                                                mPrimaryCatField.text,
                                                mSecondaryCatField.text,
                                                mDescriptionField.text,
                                                date));
+
+                if (Expenditures.EditCount > mBackup.EditCount)
+                {
+                    mBackup = backup;
+                }
+                else if (mBackup.EditCount > Expenditures.EditCount)
+                {
+                    Expenditures.CopyExpenditures(mBackup);
+                }
+
+                PlayerPrefs.SetString(SaveString, JsonUtility.ToJson(Expenditures));
+                PlayerPrefs.SetString(BackupString, JsonUtility.ToJson(mBackup));
             }
 
             mAmountField.text = string.Empty;
@@ -387,11 +434,11 @@ public class MainScreen : SingletonBehavior<MainScreen>
         if (text.Length > 0)
         {
             bool hasFoundMatch = false;
-            for (int i = 0; i < mStats.PrimaryCategories.Count; i++)
+            for (int i = 0; i < Expenditures.PrimaryCategories.Count; i++)
             {
-                if (mStats.PrimaryCategories[i].StartsWith(text, StringComparison.InvariantCultureIgnoreCase))
+                if (Expenditures.PrimaryCategories[i].StartsWith(text, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    mPrimaryCatOptions.Add(mStats.PrimaryCategories[i]);
+                    mPrimaryCatOptions.Add(Expenditures.PrimaryCategories[i]);
                     hasFoundMatch = true;
                 }
                 else if (hasFoundMatch)
@@ -400,7 +447,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
                 }
             }
 
-            if (!mStats.PrimaryCategories.Contains(text.ToUpper()))
+            if (!Expenditures.PrimaryCategories.Contains(text.ToUpper()))
             {
                 mPrimaryCatOptions.Add(text.ToUpper());
             }
@@ -408,7 +455,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
         if (text.Length == 0)
         {
-            mPrimaryCatOptions = mStats.LastUsedPrimaryCategories;
+            mPrimaryCatOptions = Expenditures.LastUsedPrimaryCategories;
         }
 
         mPrimaryCatDropdown.UpdateOptions(mPrimaryCatOptions, true);
@@ -418,16 +465,16 @@ public class MainScreen : SingletonBehavior<MainScreen>
     {
         mSecondaryCatOptions = new List<string>();
         if (text.Length > 0
-            && mStats.SecondaryCategories.ContainsKey(mPrimaryCatField.text))
+            && Expenditures.SecondaryCategories.ContainsKey(mPrimaryCatField.text))
         {
             bool hasFoundMatch = false;
             string primaryCat = mPrimaryCatField.text;
-            for (int i = 0; i < mStats.SecondaryCategories[primaryCat].Count; i++)
+            for (int i = 0; i < Expenditures.SecondaryCategories[primaryCat].Count; i++)
             {
-                if (mStats.SecondaryCategories[primaryCat][i].StartsWith(text,
+                if (Expenditures.SecondaryCategories[primaryCat][i].StartsWith(text,
                     StringComparison.InvariantCultureIgnoreCase))
                 {
-                    mSecondaryCatOptions.Add(mStats.SecondaryCategories[primaryCat][i]);
+                    mSecondaryCatOptions.Add(Expenditures.SecondaryCategories[primaryCat][i]);
                     hasFoundMatch = true;
                 }
                 else if (hasFoundMatch)
@@ -438,15 +485,15 @@ public class MainScreen : SingletonBehavior<MainScreen>
         }
 
         if (text.Length > 0
-            && (!mStats.SecondaryCategories.ContainsKey(mPrimaryCatField.text)
-                || !mStats.SecondaryCategories[mPrimaryCatField.text].Contains(text.ToUpper().Trim())))
+            && (!Expenditures.SecondaryCategories.ContainsKey(mPrimaryCatField.text)
+                || !Expenditures.SecondaryCategories[mPrimaryCatField.text].Contains(text.ToUpper().Trim())))
         {
             mSecondaryCatOptions.Add(text.ToUpper().Trim());
         }
 
-        if (text.Length == 0 && mStats.LastUsedSecondaryCategories.ContainsKey(mPrimaryCatField.text.ToUpper()))
+        if (text.Length == 0 && Expenditures.LastUsedSecondaryCategories.ContainsKey(mPrimaryCatField.text.ToUpper()))
         {
-            mSecondaryCatOptions = mStats.LastUsedSecondaryCategories[mPrimaryCatField.text.ToUpper()];
+            mSecondaryCatOptions = Expenditures.LastUsedSecondaryCategories[mPrimaryCatField.text.ToUpper()];
         }
 
         mSecondaryCatDropdown.UpdateOptions(mSecondaryCatOptions, false);
@@ -492,7 +539,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
     public void LoadExpenditureList()
     {
         mExpenditureListContainer.SetActive(true);
-        mExpenditureList.Init(mStats.Items.Count);
+        mExpenditureList.Init(Expenditures.Items.Count);
         EditIndex = -1;
     }
 
@@ -506,7 +553,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
         mExpenditureListContainer.SetActive(false);
         mAddExpenditureContainer.SetActive(true);
 
-        ExpenditureItem item = mStats.Items[EditIndex];
+        ExpenditureItem item = Expenditures.Items[EditIndex];
 
         mDayField.text = item.Date.ToString("dd");
         mMonthField.text = item.Date.ToString("MM");
@@ -537,21 +584,36 @@ public class MainScreen : SingletonBehavior<MainScreen>
         int month = int.Parse(mMonthField.text);
         int year = int.Parse(mYearField.text);
 
-        DateTime editDateTime = mStats.Items[EditIndex].Date.DateTime;
+        DateTime editDateTime = Expenditures.Items[EditIndex].Date.DateTime;
 
         DateTime date = new DateTime(year, month, day, editDateTime.Hour, editDateTime.Minute, editDateTime.Second);
         date = DateTime.SpecifyKind(date, DateTimeKind.Local);
 
         float amount = float.Parse(mAmountField.text);
 
-        mStats.Remove(EditIndex);
-        mStats.Add(new ExpenditureItem(amount,
+        ExpenditureStats backup = ScriptableObject.CreateInstance<ExpenditureStats>();
+        backup.CopyExpenditures(Expenditures);
+
+        Expenditures.Remove(EditIndex);
+        Expenditures.Add(new ExpenditureItem(amount,
                                        mPrimaryCatField.text,
                                        mSecondaryCatField.text,
                                        mDescriptionField.text,
                                        date));
 
         EditIndex = -1;
+
+        if (Expenditures.EditCount > mBackup.EditCount)
+        {
+            mBackup = backup;
+        }
+        else if (mBackup.EditCount > Expenditures.EditCount)
+        {
+            Expenditures.CopyExpenditures(mBackup);
+        }
+
+        PlayerPrefs.SetString(SaveString, JsonUtility.ToJson(Expenditures));
+        PlayerPrefs.SetString(BackupString, JsonUtility.ToJson(mBackup));
 
         LoadBlankExpenditure();
 
@@ -562,8 +624,23 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
     public void RemoveExpenditure()
     {
-        mStats.Remove(EditIndex);
+        ExpenditureStats backup = ScriptableObject.CreateInstance<ExpenditureStats>();
+        backup.CopyExpenditures(Expenditures);
+
+        Expenditures.Remove(EditIndex);
         LoadExpenditureList();
+
+        if (Expenditures.EditCount > mBackup.EditCount)
+        {
+            mBackup = backup;
+        }
+        else if (mBackup.EditCount > Expenditures.EditCount)
+        {
+            Expenditures.CopyExpenditures(mBackup);
+        }
+
+        PlayerPrefs.SetString(SaveString, JsonUtility.ToJson(Expenditures));
+        PlayerPrefs.SetString(BackupString, JsonUtility.ToJson(mBackup));
     }
     #endregion
 
@@ -605,7 +682,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
         if (string.IsNullOrEmpty(s))
         {
-            foreach (ExpenditureItem item in mStats.Items)
+            foreach (ExpenditureItem item in Expenditures.Items)
             {
                 totalAmount += item.Amount;
                 if (!categoryAmounts.ContainsKey(item.PrimaryCategory))
@@ -620,7 +697,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
         }
         else
         {
-            foreach (ExpenditureItem item in mStats.Items)
+            foreach (ExpenditureItem item in Expenditures.Items)
             {
                 if (!item.PrimaryCategory.Equals(s, StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -697,7 +774,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
     public void LoadRecurringExpenditureList()
     {
         mRecurringExpenditureListContainer.SetActive(true);
-        mRecurringExpenditureList.Init(mStats.RecurringItemList.Count);
+        mRecurringExpenditureList.Init(RecurringExpense.RecurringItemList.Count);
         RecurringEditIndex = -1;
     }
 
@@ -711,7 +788,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
         mRecurringExpenditureListContainer.SetActive(false);
         mAddExpenditureContainer.SetActive(true);
 
-        ExpenditureItem item = mStats.RecurringItemList[RecurringEditIndex];
+        ExpenditureItem item = RecurringExpense.RecurringItemList[RecurringEditIndex];
 
         mDayField.text = item.Date.ToString("dd");
         mMonthField.text = item.Date.ToString("MM");
@@ -745,12 +822,15 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
         float amount = float.Parse(mAmountField.text);
 
-        mStats.RemoveRecurringExpenditure(RecurringEditIndex);
-        mStats.AddRecurringExpenditure(new ExpenditureItem(amount,
-                                       mPrimaryCatField.text,
-                                       mSecondaryCatField.text,
-                                       mDescriptionField.text,
-                                       date));
+        RecurringExpense.RemoveRecurringExpenditure(RecurringEditIndex);
+        RecurringExpense.AddRecurringExpenditure(new ExpenditureItem(amount,
+                                                               mPrimaryCatField.text,
+                                                               mSecondaryCatField.text,
+                                                               mDescriptionField.text,
+                                                               date));
+
+        PlayerPrefs.SetString(RecurringString, JsonUtility.ToJson(RecurringExpense));
+
         RecurringEditIndex = -1;
 
         LoadBlankExpenditure();
@@ -762,8 +842,10 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
     public void RemoveRecurringExpenditure()
     {
-        mStats.RemoveRecurringExpenditure(RecurringEditIndex);
+        RecurringExpense.RemoveRecurringExpenditure(RecurringEditIndex);
         LoadRecurringExpenditureList();
+
+        PlayerPrefs.SetString(RecurringString, JsonUtility.ToJson(RecurringExpense));
     }
     #endregion
 }

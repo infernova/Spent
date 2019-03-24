@@ -19,9 +19,6 @@ public class RecurringExpenditureItem : GUILiteScrollListItem
     [SerializeField]
     private Image mBackground;
 
-    [SerializeField]
-    private ExpenditureStats mStats;
-
     private int mIndex;
 
     private void Start()
@@ -51,7 +48,7 @@ public class RecurringExpenditureItem : GUILiteScrollListItem
         base.ResetPosition(index);
         mIndex = index;
 
-        ExpenditureItem item = mStats.RecurringItemList[index];
+        ExpenditureItem item = MainScreen.Instance.RecurringExpense.RecurringItemList[index];
         mDate.text = "Day " + item.Date.ToString("dd");
         mAmount.text = "$" + item.Amount.ToString("0.00");
         mPrimaryCat.text = item.PrimaryCategory;

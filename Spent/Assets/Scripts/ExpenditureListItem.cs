@@ -18,9 +18,6 @@ public class ExpenditureListItem : GUILiteScrollListItem
     [SerializeField]
     private Image mBackground;
 
-    [SerializeField]
-    private ExpenditureStats mStats;
-
     private int mIndex;
 
 	private void Start()
@@ -50,7 +47,7 @@ public class ExpenditureListItem : GUILiteScrollListItem
         base.ResetPosition(index);
         mIndex = index;
 
-        ExpenditureItem item = mStats.Items[index];
+        ExpenditureItem item = MainScreen.Instance.Expenditures.Items[index];
         mDate.text = item.Date.ToString("dd/MM/yy");
         mAmount.text = "$" + item.Amount.ToString("0.00");
         mPrimaryCat.text = item.PrimaryCategory;
