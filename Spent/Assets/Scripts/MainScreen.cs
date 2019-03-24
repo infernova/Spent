@@ -1,4 +1,4 @@
-﻿using TMPro;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using StarstruckFramework;
@@ -8,6 +8,108 @@ using System.Collections.Generic;
 public class MainScreen : SingletonBehavior<MainScreen>
 {
     public const string DateTimeFormatString = "yyyy-MM-dd HH:mm:ss K";
+
+    public void IncrementDateRange()
+    {
+        Expenditures.IncrementDateRange();
+        RefreshDateRange();
+    }
+
+    public void DecrementDateRange()
+    {
+        Expenditures.DecrementDateRange();
+        RefreshDateRange();
+    }
+
+    private void RefreshDateRange()
+    {
+        if (Expenditures.DateRange.Year == 1)
+        {
+            mExpenditureListDateRangeText.SetText("All Time");
+            mCostBreakdownDateRangeText.SetText("All Time");
+        }
+        else
+        {
+            mExpenditureListDateRangeText.SetText(Expenditures.DateRange.ToString("MMM yyyy"));
+            mCostBreakdownDateRangeText.SetText(Expenditures.DateRange.ToString("MMM yyyy"));
+        }
+
+        if (mExpenditureListContainer.activeSelf)
+        {
+            mExpenditureList.Init(Expenditures.DisplayedItems.Count);
+        }
+        else if (mCostBreakdownContainer.activeSelf)
+        {
+            LoadCostBreakdown(string.Empty);
+        }
+    }
+
+    private void Start()
+    {
+        LoadBlankExpenditure();
+
+        Expenditures = ScriptableObject.CreateInstance<ExpenditureStats>();
+        mBackup = ScriptableObject.CreateInstance<ExpenditureStats>();
+
+        RecurringExpense = ScriptableObject.CreateInstance<RecurringExpenditureStats>();
+
+        if (PlayerPrefs.HasKey(SaveString))
+        {
+            JsonUtility.FromJsonOverwrite(PlayerPrefs.GetString(SaveString), Expenditures);
+        }
+
+        if (PlayerPrefs.HasKey(RecurringString))
+        {
+            JsonUtility.FromJsonOverwrite(PlayerPrefs.GetString(RecurringString), RecurringExpense);
+        }
+
+        if (PlayerPrefs.HasKey(BackupString))
+        {
+            JsonUtility.FromJsonOverwrite(PlayerPrefs.GetString(BackupString), mBackup);
+        }
+
+        if (mBackup.EditCount > Expenditures.EditCount)
+        {
+            Expenditures.CopyExpenditures(mBackup);
+        }
+
+        Expenditures.LoadCategories();
+        mBackup.LoadCategories();
+
+        RecurringExpense.LoadRecurringExpenditureList();
+
+        Expenditures.RefreshDateRange();
+        RefreshDateRange();
+
+        CheckRecurringExpenditure();
+    }
+
+    private void OnApplicationPause(bool pause)
+    {
+        if (!pause)
+        {
+            try
+            {
+                int day = int.Parse(mDayField.text);
+                int month = int.Parse(mMonthField.text);
+                int year = int.Parse(mYearField.text);
+
+                DateTime date = new DateTime(year, month, day);
+
+                if (!mAddExpenditureContainer.activeSelf
+                    || DateTime.Now.Date != date)
+                {
+                    LoadBlankExpenditure();
+                }
+
+                CheckRecurringExpenditure();
+            }
+            catch
+            {
+
+            }
+        }
+    }
 
     private void Update()
     {
@@ -62,6 +164,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
     }
 
     #region Add Expenditure
+    [Header("Add Expenditure")]
     [SerializeField]
     private GameObject mAddExpenditureContainer;
     [SerializeField]
@@ -113,70 +216,6 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
     public RecurringExpenditureStats RecurringExpense;
 
-    private void Start()
-    {
-        LoadBlankExpenditure();
-
-        Expenditures = ScriptableObject.CreateInstance<ExpenditureStats>();
-        mBackup = ScriptableObject.CreateInstance<ExpenditureStats>();
-
-        RecurringExpense = ScriptableObject.CreateInstance<RecurringExpenditureStats>();
-
-        if (PlayerPrefs.HasKey(SaveString))
-        {
-            JsonUtility.FromJsonOverwrite(PlayerPrefs.GetString(SaveString), Expenditures);
-        }
-
-        if (PlayerPrefs.HasKey(RecurringString))
-        {
-            JsonUtility.FromJsonOverwrite(PlayerPrefs.GetString(RecurringString), RecurringExpense);
-        }
-
-        if (PlayerPrefs.HasKey(BackupString))
-        {
-            JsonUtility.FromJsonOverwrite(PlayerPrefs.GetString(BackupString), mBackup);
-        }
-
-        if (mBackup.EditCount > Expenditures.EditCount)
-        {
-            Expenditures.CopyExpenditures(mBackup);
-        }
-
-        Expenditures.LoadCategories();
-        mBackup.LoadCategories();
-
-        RecurringExpense.LoadRecurringExpenditureList();
-
-        CheckRecurringExpenditure();
-    }
-
-	private void OnApplicationPause(bool pause)
-	{
-        if (!pause)
-        {
-            try
-            {
-                int day = int.Parse(mDayField.text);
-                int month = int.Parse(mMonthField.text);
-                int year = int.Parse(mYearField.text);
-
-                DateTime date = new DateTime(year, month, day);
-
-                if (!mAddExpenditureContainer.activeSelf
-                    || DateTime.Now.Date != date)
-                {
-                    LoadBlankExpenditure();
-                }
-
-                CheckRecurringExpenditure();
-            }
-            catch
-            {
-                
-            }
-        }
-	}
-
     private void CheckRecurringExpenditure()
     {
         if (!PlayerPrefs.HasKey(CurrDateSaveString))
@@ -195,6 +234,8 @@ public class MainScreen : SingletonBehavior<MainScreen>
                                                 System.Globalization.CultureInfo.InvariantCulture,
                                                 System.Globalization.DateTimeStyles.AdjustToUniversal).Date;
 
+        bool isNewDay = false;
+
         while (lastLoad < DateTime.UtcNow.Date)
         {
             DateTime newDate = new DateTime(lastLoad.Year, lastLoad.Month, lastLoad.Day);
@@ -210,6 +251,13 @@ public class MainScreen : SingletonBehavior<MainScreen>
             }
 
             lastLoad = lastLoad.AddDays(1.0f).Date;
+
+            isNewDay = true;
+        }
+
+        if (isNewDay)
+        {
+            Expenditures.RefreshDateRange();
         }
 
         PlayerPrefs.SetString(CurrDateSaveString,
@@ -410,6 +458,8 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
                 PlayerPrefs.SetString(SaveString, JsonUtility.ToJson(Expenditures));
                 PlayerPrefs.SetString(BackupString, JsonUtility.ToJson(mBackup));
+
+                Expenditures.RefreshDisplayedList();
             }
 
             mAmountField.text = string.Empty;
@@ -501,6 +551,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
     #endregion
 
     #region Expenditure List
+    [Header("Expenditure List")]
     [SerializeField]
     private GameObject mExpenditureListContainer;
     [SerializeField]
@@ -511,6 +562,8 @@ public class MainScreen : SingletonBehavior<MainScreen>
     private Button mEditExpenditureButton;
     [SerializeField]
     private Button mRemoveExpenditureButton;
+    [SerializeField]
+    private TextMeshProUGUI mExpenditureListDateRangeText;
     private int mEditIndex = -1;
     public int EditIndex
     {
@@ -539,7 +592,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
     public void LoadExpenditureList()
     {
         mExpenditureListContainer.SetActive(true);
-        mExpenditureList.Init(Expenditures.Items.Count);
+        mExpenditureList.Init(Expenditures.DisplayedItems.Count);
         EditIndex = -1;
     }
 
@@ -553,7 +606,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
         mExpenditureListContainer.SetActive(false);
         mAddExpenditureContainer.SetActive(true);
 
-        ExpenditureItem item = Expenditures.Items[EditIndex];
+        ExpenditureItem item = Expenditures.DisplayedItems[EditIndex];
 
         mDayField.text = item.Date.ToString("dd");
         mMonthField.text = item.Date.ToString("MM");
@@ -584,7 +637,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
         int month = int.Parse(mMonthField.text);
         int year = int.Parse(mYearField.text);
 
-        DateTime editDateTime = Expenditures.Items[EditIndex].Date.DateTime;
+        DateTime editDateTime = Expenditures.DisplayedItems[EditIndex].Date.DateTime;
 
         DateTime date = new DateTime(year, month, day, editDateTime.Hour, editDateTime.Minute, editDateTime.Second);
         date = DateTime.SpecifyKind(date, DateTimeKind.Local);
@@ -600,6 +653,8 @@ public class MainScreen : SingletonBehavior<MainScreen>
                                        mSecondaryCatField.text,
                                        mDescriptionField.text,
                                        date));
+
+        Expenditures.RefreshDisplayedList();
 
         EditIndex = -1;
 
@@ -645,12 +700,15 @@ public class MainScreen : SingletonBehavior<MainScreen>
     #endregion
 
     #region Cost Breakdown
+    [Header("Cost Breakdown")]
     [SerializeField]
     private GameObject mCostBreakdownContainer;
     [SerializeField]
     private TextMeshProUGUI mTotalSpendAmount;
     [SerializeField]
     private GUILiteScrollList mCostBreakdownList;
+    [SerializeField]
+    private TextMeshProUGUI mCostBreakdownDateRangeText;
     public List<CostBreakdownItem> CostBreakdownItems;
     private int mCostBreakdownIndex = -1;
     private int CostBreakdownIndex
@@ -682,7 +740,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
         if (string.IsNullOrEmpty(s))
         {
-            foreach (ExpenditureItem item in Expenditures.Items)
+            foreach (ExpenditureItem item in Expenditures.DisplayedItems)
             {
                 totalAmount += item.Amount;
                 if (!categoryAmounts.ContainsKey(item.PrimaryCategory))
@@ -697,7 +755,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
         }
         else
         {
-            foreach (ExpenditureItem item in Expenditures.Items)
+            foreach (ExpenditureItem item in Expenditures.DisplayedItems)
             {
                 if (!item.PrimaryCategory.Equals(s, StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -736,6 +794,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
     #endregion
 
     #region Recurring Expenditure List
+    [Header("Recurring Expenditure")]
     [SerializeField]
     private GameObject mRecurringExpenditureListContainer;
     [SerializeField]
