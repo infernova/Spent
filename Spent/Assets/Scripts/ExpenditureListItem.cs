@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
-public class ExpenditureListItem : GUILiteScrollListItem
+public class ExpenditureListItem : SelectableListItem
 {
     [SerializeField]
     private Button mButton;
@@ -15,39 +15,17 @@ public class ExpenditureListItem : GUILiteScrollListItem
     private TextMeshProUGUI mPrimaryCat;
     [SerializeField]
     private TextMeshProUGUI mSecondaryCat;
-    [SerializeField]
-    private Image mBackground;
-
-    private int mIndex;
 
 	private void Start()
 	{
         mButton.onClick.AddListener(() => MainScreen.Instance.SelectExpenditureItem(mIndex));
 	}
 
-    public void CheckIfSelected(int index)
-    {
-        SetAsSelected(mIndex == index);
-    }
-
-    private void SetAsSelected(bool isSelected)
-    {
-        if (isSelected)
-        {
-            mBackground.color = new Color(0.8f, 0.8f, 0.8f, 1.0f);
-        }
-        else
-        {
-            mBackground.color = new Color(0.96f, 0.96f, 0.96f, 1.0f);
-        }
-    }
-
 	public override void ResetPosition(int index)
 	{
         base.ResetPosition(index);
-        mIndex = index;
 
-        ExpenditureItem item = MainScreen.Instance.Expenditures.Items[index];
+        ExpenditureItem item = MainScreen.Instance.DisplayedItems[index];
         mDate.text = item.Date.ToString("dd/MM/yy");
         mAmount.text = "$" + item.Amount.ToString("0.00");
         mPrimaryCat.text = item.PrimaryCategory;

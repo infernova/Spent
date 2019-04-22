@@ -7,6 +7,181 @@ using System.Collections.Generic;
 
 public class MainScreen : SingletonBehavior<MainScreen>
 {
+    [Header("List Template")]
+    [SerializeField]
+    private GameObject ExpenditureListTemplate;
+    [SerializeField]
+    private GameObject CostBreakdownListTemplate;
+    [SerializeField]
+    private GameObject CategoryExpenditureListTemplate;
+
+    private bool mIsCostBreakdownExpenseList
+    {
+        get { return mSelectedCostBreakdownCat.Contains("\t"); }
+    }
+
+    private List<ExpenditureItem> mCostBreakdownExpenditureListItems = new List<ExpenditureItem>();
+    public List<ExpenditureItem> DisplayedItems
+    {
+        get
+        {
+            if (mIsCostBreakdownExpenseList)
+            {
+                return mCostBreakdownExpenditureListItems;
+            }
+            else
+            {
+                return Expenditures.DateRangetems;
+            }
+        }
+    }
+
+    #region Item Edit
+    public void StartItemEdit()
+    {
+        mExpenditureListContainer.SetActive(false);
+        mCostBreakdownContainer.SetActive(false);
+        mAddExpenditureContainer.SetActive(true);
+
+        ExpenditureItem item = mIsCostBreakdownExpenseList 
+            ? mCostBreakdownExpenditureListItems[CostBreakdownIndex]
+            : Expenditures.DateRangetems[EditIndex];
+
+        mDayField.text = item.Date.ToString("dd");
+        mMonthField.text = item.Date.ToString("MM");
+        mYearField.text = item.Date.ToString("yyyy");
+
+        mAmountField.text = item.Amount.ToString("0.00");
+        mPrimaryCatField.text = item.PrimaryCategory;
+        mSecondaryCatField.text = item.SecondaryCategory;
+        mDescriptionField.text = item.Description;
+
+        mIsRecurring.isOn = false;
+        mIsRecurring.interactable = false;
+    }
+
+    public void CancelEdit()
+    {
+        EditIndex = -1;
+        CostBreakdownIndex = -1;
+
+        LoadBlankExpenditure();
+
+        mAddExpenditureContainer.SetActive(false);
+
+        if (mIsCostBreakdownExpenseList)
+        {
+            mCostBreakdownContainer.SetActive(true);
+        }
+        else
+        {
+            mExpenditureListContainer.SetActive(true);
+        }
+    }
+
+    public void ConfirmEdit()
+    {
+        int day = int.Parse(mDayField.text);
+        int month = int.Parse(mMonthField.text);
+        int year = int.Parse(mYearField.text);
+
+        ExpenditureItem item = mIsCostBreakdownExpenseList
+            ? mCostBreakdownExpenditureListItems[CostBreakdownIndex]
+            : Expenditures.DateRangetems[EditIndex];
+
+        DateTime editDateTime = item.Date.DateTime;
+
+        DateTime date = new DateTime(year, month, day, editDateTime.Hour, editDateTime.Minute, editDateTime.Second);
+        date = DateTime.SpecifyKind(date, DateTimeKind.Local);
+
+        float amount = float.Parse(mAmountField.text);
+
+        ExpenditureStats backup = ScriptableObject.CreateInstance<ExpenditureStats>();
+        backup.CopyExpenditures(Expenditures);
+
+        Expenditures.Remove(item);
+        Expenditures.Add(new ExpenditureItem(amount,
+                                       mPrimaryCatField.text,
+                                       mSecondaryCatField.text,
+                                       mDescriptionField.text,
+                                       date));
+
+        Expenditures.RefreshDisplayedList();
+
+        EditIndex = -1;
+        CostBreakdownIndex = -1;
+
+        if (Expenditures.EditCount > mBackup.EditCount)
+        {
+            mBackup = backup;
+        }
+        else if (mBackup.EditCount > Expenditures.EditCount)
+        {
+            Expenditures.CopyExpenditures(mBackup);
+        }
+
+        PlayerPrefs.SetString(SaveString, JsonUtility.ToJson(Expenditures));
+        PlayerPrefs.SetString(BackupString, JsonUtility.ToJson(mBackup));
+
+        LoadBlankExpenditure();
+
+        mAddExpenditureContainer.SetActive(false);
+
+        if (mIsCostBreakdownExpenseList)
+        {
+            mCostBreakdownContainer.SetActive(true);
+            LoadCostBreakdown(mSelectedCostBreakdownCat);
+        }
+        else
+        {
+            mExpenditureListContainer.SetActive(true);
+            LoadExpenditureList();
+        }
+    }
+
+    public void RemoveExpenditure()
+    {
+        ExpenditureStats backup = ScriptableObject.CreateInstance<ExpenditureStats>();
+        backup.CopyExpenditures(Expenditures);
+
+        if (!mIsCostBreakdownExpenseList)
+        {
+            Expenditures.Remove(EditIndex);
+        }
+        else
+        {
+            Expenditures.Remove(DisplayedItems[CostBreakdownIndex]);
+        }
+
+        Expenditures.RefreshDisplayedList();
+
+        if (Expenditures.EditCount > mBackup.EditCount)
+        {
+            mBackup = backup;
+        }
+        else if (mBackup.EditCount > Expenditures.EditCount)
+        {
+            Expenditures.CopyExpenditures(mBackup);
+        }
+
+        PlayerPrefs.SetString(SaveString, JsonUtility.ToJson(Expenditures));
+        PlayerPrefs.SetString(BackupString, JsonUtility.ToJson(mBackup));
+
+        if (!mIsCostBreakdownExpenseList)
+        {
+            LoadExpenditureList();
+        }
+        else
+        {
+            LoadCostBreakdown(mSelectedCostBreakdownCat);
+        }
+
+        EditIndex = -1;
+        CostBreakdownIndex = -1;
+    }
+    #endregion
+
+#region Date Range
     public const string DateTimeFormatString = "yyyy-MM-dd HH:mm:ss K";
 
     public void IncrementDateRange()
@@ -36,13 +211,17 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
         if (mExpenditureListContainer.activeSelf)
         {
-            mExpenditureList.Init(Expenditures.DisplayedItems.Count);
+            mExpenditureList.Init(Expenditures.DateRangetems.Count);
         }
         else if (mCostBreakdownContainer.activeSelf)
         {
-            LoadCostBreakdown(string.Empty);
+            LoadCostBreakdown(mSelectedCostBreakdownCat);
         }
     }
+    #endregion
+
+    private DateTime pauseDate;
+    private bool mIsInit;
 
     private void Start()
     {
@@ -82,32 +261,29 @@ public class MainScreen : SingletonBehavior<MainScreen>
         RefreshDateRange();
 
         CheckRecurringExpenditure();
+
+        pauseDate = DateTime.Now.Date;
+        mIsInit = true;
     }
 
     private void OnApplicationPause(bool pause)
     {
         if (!pause)
         {
-            try
+            if (!mAddExpenditureContainer.activeSelf
+                || (mIsInit && pauseDate < DateTime.Now.Date))
             {
-                int day = int.Parse(mDayField.text);
-                int month = int.Parse(mMonthField.text);
-                int year = int.Parse(mYearField.text);
+                LoadBlankExpenditure();
 
-                DateTime date = new DateTime(year, month, day);
-
-                if (!mAddExpenditureContainer.activeSelf
-                    || DateTime.Now.Date != date)
+                if (mIsInit && pauseDate < DateTime.Now.Date)
                 {
-                    LoadBlankExpenditure();
+                    CheckRecurringExpenditure();
                 }
-
-                CheckRecurringExpenditure();
             }
-            catch
-            {
-
-            }
+        }
+        else
+        {
+            pauseDate = DateTime.Now.Date;
         }
     }
 
@@ -115,29 +291,27 @@ public class MainScreen : SingletonBehavior<MainScreen>
     {
         if (mAddExpenditureContainer.activeSelf)
         {
-            if (EditIndex == -1 && RecurringEditIndex == -1 && !mAddExpenditureButton.activeSelf)
+            if (EditIndex == -1 
+                && RecurringEditIndex == -1 
+                && CostBreakdownIndex == -1
+                && !mAddExpenditureButtonContainer.activeSelf)
             {
                 mEditExpenditureButtonContainer.SetActive(false);
                 mEditRecurringExpenditureButtonContainer.SetActive(false);
-                mAddExpenditureButton.SetActive(true);
+                mAddExpenditureButtonContainer.SetActive(true);
             }
-            else if (EditIndex != -1 && !mEditExpenditureButtonContainer.activeSelf)
+            else if ((EditIndex != -1 || CostBreakdownIndex != -1) && !mEditExpenditureButtonContainer.activeSelf)
             {
                 mEditExpenditureButtonContainer.SetActive(true);
                 mEditRecurringExpenditureButtonContainer.SetActive(false);
-                mAddExpenditureButton.SetActive(false);
+                mAddExpenditureButtonContainer.SetActive(false);
             }
             else if (RecurringEditIndex != -1 && !mEditRecurringExpenditureButtonContainer.activeSelf)
             {
                 mEditExpenditureButtonContainer.SetActive(false);
                 mEditRecurringExpenditureButtonContainer.SetActive(true);
-                mAddExpenditureButton.SetActive(false);
+                mAddExpenditureButtonContainer.SetActive(false);
             }
-        }
-
-        if (mAddExpenditureContainer.activeSelf)
-        {
-            
         }
 
         if (mPrimaryCatField.isFocused)
@@ -156,10 +330,24 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
         if (Input.GetKeyDown(KeyCode.Escape))
         {
-            mAddExpenditureContainer.SetActive(true);
-            mExpenditureListContainer.SetActive(false);
-            mCostBreakdownContainer.SetActive(false);
-            mRecurringExpenditureListContainer.SetActive(false);
+            if (mCostBreakdownContainer.activeSelf && !string.IsNullOrEmpty(mSelectedCostBreakdownCat))
+            {
+                SelectPreviousCostBreakdown();
+            }
+            else if (mAddExpenditureContainer.activeSelf
+                     && !(EditIndex == -1
+                          && RecurringEditIndex == -1
+                          && CostBreakdownIndex == -1))
+            {
+                CancelEdit();
+            }
+            else
+            {
+                mAddExpenditureContainer.SetActive(true);
+                mExpenditureListContainer.SetActive(false);
+                mCostBreakdownContainer.SetActive(false);
+                mRecurringExpenditureListContainer.SetActive(false);
+            }
         }
     }
 
@@ -168,7 +356,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
     [SerializeField]
     private GameObject mAddExpenditureContainer;
     [SerializeField]
-    private GameObject mAddExpenditureButton;
+    private GameObject mAddExpenditureButtonContainer;
     [SerializeField]
     private TMP_InputField mDayField;
     [SerializeField]
@@ -581,7 +769,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
             for (int i = 0; i < mExpenditureList.ItemList.Count; i++)
             {
-                ((ExpenditureListItem)mExpenditureList.ItemList[i]).CheckIfSelected(mEditIndex);
+                ((SelectableListItem)mExpenditureList.ItemList[i]).CheckIfSelected(mEditIndex);
             }
 
             mEditExpenditureButton.interactable = EditIndex != -1;
@@ -591,111 +779,19 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
     public void LoadExpenditureList()
     {
-        mExpenditureListContainer.SetActive(true);
-        mExpenditureList.Init(Expenditures.DisplayedItems.Count);
+        mSelectedCostBreakdownCat = string.Empty;
+
         EditIndex = -1;
+        CostBreakdownIndex = -1;
+        RecurringEditIndex = -1;
+
+        mExpenditureListContainer.SetActive(true);
+        mExpenditureList.Init(Expenditures.DateRangetems.Count);
     }
 
     public void SelectExpenditureItem(int index)
     {
         EditIndex = index;
-    }
-
-    public void StartItemEdit()
-    {
-        mExpenditureListContainer.SetActive(false);
-        mAddExpenditureContainer.SetActive(true);
-
-        ExpenditureItem item = Expenditures.DisplayedItems[EditIndex];
-
-        mDayField.text = item.Date.ToString("dd");
-        mMonthField.text = item.Date.ToString("MM");
-        mYearField.text = item.Date.ToString("yyyy");
-
-        mAmountField.text = item.Amount.ToString("0.00");
-        mPrimaryCatField.text = item.PrimaryCategory;
-        mSecondaryCatField.text = item.SecondaryCategory;
-        mDescriptionField.text = item.Description;
-
-        mIsRecurring.isOn = false;
-        mIsRecurring.interactable = false;
-    }
-
-    public void CancelEdit()
-    {
-        EditIndex = -1;
-
-        LoadBlankExpenditure();
-
-        mExpenditureListContainer.SetActive(true);
-        mAddExpenditureContainer.SetActive(false);
-    }
-
-    public void ConfirmEdit()
-    {
-        int day = int.Parse(mDayField.text);
-        int month = int.Parse(mMonthField.text);
-        int year = int.Parse(mYearField.text);
-
-        DateTime editDateTime = Expenditures.DisplayedItems[EditIndex].Date.DateTime;
-
-        DateTime date = new DateTime(year, month, day, editDateTime.Hour, editDateTime.Minute, editDateTime.Second);
-        date = DateTime.SpecifyKind(date, DateTimeKind.Local);
-
-        float amount = float.Parse(mAmountField.text);
-
-        ExpenditureStats backup = ScriptableObject.CreateInstance<ExpenditureStats>();
-        backup.CopyExpenditures(Expenditures);
-
-        Expenditures.Remove(EditIndex);
-        Expenditures.Add(new ExpenditureItem(amount,
-                                       mPrimaryCatField.text,
-                                       mSecondaryCatField.text,
-                                       mDescriptionField.text,
-                                       date));
-
-        Expenditures.RefreshDisplayedList();
-
-        EditIndex = -1;
-
-        if (Expenditures.EditCount > mBackup.EditCount)
-        {
-            mBackup = backup;
-        }
-        else if (mBackup.EditCount > Expenditures.EditCount)
-        {
-            Expenditures.CopyExpenditures(mBackup);
-        }
-
-        PlayerPrefs.SetString(SaveString, JsonUtility.ToJson(Expenditures));
-        PlayerPrefs.SetString(BackupString, JsonUtility.ToJson(mBackup));
-
-        LoadBlankExpenditure();
-
-        mExpenditureListContainer.SetActive(true);
-        mAddExpenditureContainer.SetActive(false);
-        LoadExpenditureList();
-    }
-
-    public void RemoveExpenditure()
-    {
-        ExpenditureStats backup = ScriptableObject.CreateInstance<ExpenditureStats>();
-        backup.CopyExpenditures(Expenditures);
-
-        Expenditures.Remove(EditIndex);
-        LoadExpenditureList();
-
-        if (Expenditures.EditCount > mBackup.EditCount)
-        {
-            mBackup = backup;
-        }
-        else if (mBackup.EditCount > Expenditures.EditCount)
-        {
-            Expenditures.CopyExpenditures(mBackup);
-        }
-
-        PlayerPrefs.SetString(SaveString, JsonUtility.ToJson(Expenditures));
-        PlayerPrefs.SetString(BackupString, JsonUtility.ToJson(mBackup));
     }
     #endregion
 
@@ -704,17 +800,26 @@ public class MainScreen : SingletonBehavior<MainScreen>
     [SerializeField]
     private GameObject mCostBreakdownContainer;
     [SerializeField]
+    private TextMeshProUGUI mCostBreakdownTitle;
+    [SerializeField]
     private TextMeshProUGUI mTotalSpendAmount;
     [SerializeField]
     private GUILiteScrollList mCostBreakdownList;
     [SerializeField]
     private TextMeshProUGUI mCostBreakdownDateRangeText;
+    [SerializeField]
+    private GameObject mCostBreakdownBackButton;
+    [SerializeField]
+    private GameObject mCostBreakdownEditButton;
+    [SerializeField]
+    private GameObject mCostBreakdownRemoveButton;
     public List<CostBreakdownItem> CostBreakdownItems;
+    private string mSelectedCostBreakdownCat = string.Empty;
     private int mCostBreakdownIndex = -1;
-    private int CostBreakdownIndex
+    public int CostBreakdownIndex
     {
         get { return mCostBreakdownIndex; }
-        set
+        private set
         {
             if (mCostBreakdownIndex == value)
             {
@@ -727,20 +832,40 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
             for (int i = 0; i < mCostBreakdownList.ItemList.Count; i++)
             {
-                ((CostBreakdownListItem)mCostBreakdownList.ItemList[i]).SetAsSelected(i == mCostBreakdownIndex);
+                ((SelectableListItem)mCostBreakdownList.ItemList[i]).CheckIfSelected(mCostBreakdownIndex);
             }
+
+            mCostBreakdownEditButton.GetComponent<Button>().interactable = mCostBreakdownIndex != -1;
+            mCostBreakdownRemoveButton.GetComponent<Button>().interactable = mCostBreakdownIndex != -1;
         }
     }
 
     public void LoadCostBreakdown(string s)
     {
+        LoadCostBreakdown(s, false);
+    }
+
+    public void LoadCostBreakdown(string s, bool overrideInput)
+    {
+        EditIndex = -1;
+        CostBreakdownIndex = -1;
+        RecurringEditIndex = -1;
+
         mCostBreakdownContainer.SetActive(true);
+
         float totalAmount = 0.0f;
         Dictionary<string, float> categoryAmounts = new Dictionary<string, float>();
 
+        mCostBreakdownEditButton.SetActive(false);
+        mCostBreakdownRemoveButton.SetActive(false);
+
         if (string.IsNullOrEmpty(s))
         {
-            foreach (ExpenditureItem item in Expenditures.DisplayedItems)
+            mSelectedCostBreakdownCat = string.Empty;
+            mCostBreakdownTitle.SetText("TOTAL SPENDING");
+            mCostBreakdownBackButton.SetActive(false);
+
+            foreach (ExpenditureItem item in Expenditures.DateRangetems)
             {
                 totalAmount += item.Amount;
                 if (!categoryAmounts.ContainsKey(item.PrimaryCategory))
@@ -752,44 +877,129 @@ public class MainScreen : SingletonBehavior<MainScreen>
                     categoryAmounts[item.PrimaryCategory] += item.Amount;
                 }
             }
+
+            mCostBreakdownList.ListItemTemplate = CostBreakdownListTemplate;
         }
         else
         {
-            foreach (ExpenditureItem item in Expenditures.DisplayedItems)
+            mCostBreakdownBackButton.SetActive(true);
+
+            if (!s.Contains("\t")
+                && (string.IsNullOrEmpty(mSelectedCostBreakdownCat)
+                    || mSelectedCostBreakdownCat.Contains("\t")
+                    || (mSelectedCostBreakdownCat.Equals(s) && !overrideInput)))
             {
-                if (!item.PrimaryCategory.Equals(s, StringComparison.InvariantCultureIgnoreCase))
+                mCostBreakdownTitle.SetText((s + " SPENDING").ToUpper());
+
+                mSelectedCostBreakdownCat = s;
+
+                foreach (ExpenditureItem item in Expenditures.DateRangetems)
                 {
-                    continue;
+                    if (!item.PrimaryCategory.Equals(s, StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    totalAmount += item.Amount;
+                    if (!categoryAmounts.ContainsKey(item.SecondaryCategory))
+                    {
+                        categoryAmounts.Add(item.SecondaryCategory, item.Amount);
+                    }
+                    else
+                    {
+                        categoryAmounts[item.SecondaryCategory] += item.Amount;
+                    }
                 }
 
-                totalAmount += item.Amount;
-                if (!categoryAmounts.ContainsKey(item.SecondaryCategory))
+                mCostBreakdownList.ListItemTemplate = CostBreakdownListTemplate;
+            }
+            else
+            {
+                if (!mSelectedCostBreakdownCat.Contains("\t"))
                 {
-                    categoryAmounts.Add(item.SecondaryCategory, item.Amount);
+                    mSelectedCostBreakdownCat = mSelectedCostBreakdownCat + "\t" + s;
                 }
                 else
                 {
-                    categoryAmounts[item.SecondaryCategory] += item.Amount;
+                    mSelectedCostBreakdownCat = s;
                 }
+
+                mCostBreakdownTitle.SetText((mSelectedCostBreakdownCat.Split('\t')[1] + " SPENDING").ToUpper());
+
+                string[] catArray = mSelectedCostBreakdownCat.Split('\t');
+                string priCat = catArray[0];
+                string secCat = catArray[1];
+
+                mCostBreakdownExpenditureListItems = new List<ExpenditureItem>();
+
+                foreach (ExpenditureItem item in Expenditures.DateRangetems)
+                {
+                    if (!item.PrimaryCategory.Equals(priCat, StringComparison.InvariantCultureIgnoreCase)
+                        || !item.SecondaryCategory.Equals(secCat, StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    totalAmount += item.Amount;
+
+                    mCostBreakdownExpenditureListItems.Add(item);
+                }
+
+                mCostBreakdownList.ListItemTemplate = CategoryExpenditureListTemplate;
+
+                mCostBreakdownEditButton.SetActive(true);
+                mCostBreakdownRemoveButton.SetActive(true);
             }
         }
 
-        CostBreakdownItems = new List<CostBreakdownItem>();
-        foreach(KeyValuePair<string, float> pair in categoryAmounts)
+        if (mSelectedCostBreakdownCat.Contains("\t"))
         {
-            CostBreakdownItems.Add(new CostBreakdownItem(pair.Key, pair.Value, (pair.Value / totalAmount) * 100.0f));
+            mCostBreakdownList.Init(mCostBreakdownExpenditureListItems.Count);
+        }
+        else
+        {
+            CostBreakdownItems = new List<CostBreakdownItem>();
+            foreach (KeyValuePair<string, float> pair in categoryAmounts)
+            {
+                CostBreakdownItems.Add(new CostBreakdownItem(pair.Key, pair.Value, (pair.Value / totalAmount) * 100.0f));
+            }
+
+            CostBreakdownItems.Sort();
+            mCostBreakdownList.Init(CostBreakdownItems.Count);
         }
 
-        CostBreakdownItems.Sort();
-
         mTotalSpendAmount.text = "$" + totalAmount.ToString("0.00");
-        mCostBreakdownList.Init(CostBreakdownItems.Count);
-        CostBreakdownIndex = -1;
+    }
+
+    public void SelectPreviousCostBreakdown()
+    {
+        if (mSelectedCostBreakdownCat.Contains("\t"))
+        {
+            LoadCostBreakdown(mSelectedCostBreakdownCat.Split('\t')[0]);
+        }
+        else
+        {
+            LoadCostBreakdown(string.Empty);
+        }
     }
 
     public void SelectCostBreakdownItem(int index)
     {
-        CostBreakdownIndex = index;
+        if (CostBreakdownIndex == index)
+        {
+            if (mSelectedCostBreakdownCat.Contains("\t"))
+            {
+                CostBreakdownIndex = -1;
+            }
+            else
+            {
+                LoadCostBreakdown(CostBreakdownItems[index].Category, true);
+            }
+        }
+        else
+        {
+            CostBreakdownIndex = index;   
+        }
     }
     #endregion
 
@@ -822,7 +1032,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
             for (int i = 0; i < mRecurringExpenditureList.ItemList.Count; i++)
             {
-                ((RecurringExpenditureItem)mRecurringExpenditureList.ItemList[i]).CheckIfSelected(mRecurringEditIndex);
+                ((SelectableListItem)mRecurringExpenditureList.ItemList[i]).CheckIfSelected(mRecurringEditIndex);
             }
 
             mEditRecurringExpenditureButton.interactable = mRecurringEditIndex != -1;
@@ -832,9 +1042,14 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
     public void LoadRecurringExpenditureList()
     {
+        mSelectedCostBreakdownCat = string.Empty;
+
+        EditIndex = -1;
+        CostBreakdownIndex = -1;
+        RecurringEditIndex = -1;
+
         mRecurringExpenditureListContainer.SetActive(true);
         mRecurringExpenditureList.Init(RecurringExpense.RecurringItemList.Count);
-        RecurringEditIndex = -1;
     }
 
     public void SelectRecurringExpenditureItem(int index)

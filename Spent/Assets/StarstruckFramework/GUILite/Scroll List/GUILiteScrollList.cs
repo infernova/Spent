@@ -11,8 +11,26 @@ namespace StarstruckFramework
 		[SerializeField]
 		private RectTransform mContainerRect;
 
-		[SerializeField]
-		private GameObject mListItem;
+        [SerializeField]
+        private GameObject mListItemTemplate;
+        public GameObject ListItemTemplate
+        {
+            get { return mListItemTemplate; }
+            set
+            {
+                if (mListItemTemplate != value)
+                {
+                    mListItemTemplate = value;
+
+                    for (int i = mItemList.Count - 1; i >= 0; i--)
+                    {
+                        Destroy(mItemList[i].gameObject);
+                    }
+
+                    mItemList = new List<GUILiteScrollListItem>();
+                }
+            }
+        }
 		[SerializeField]
 		private float mSpacing;
 		[SerializeField]
@@ -27,7 +45,7 @@ namespace StarstruckFramework
 		private float mCurrMinCutoff;
 		private float mCurrMaxCutoff;
 
-		protected List<GUILiteScrollListItem> mItemList;
+        protected List<GUILiteScrollListItem> mItemList = new List<GUILiteScrollListItem>();
 
 		public List<GUILiteScrollListItem> ItemList
 		{
@@ -50,7 +68,7 @@ namespace StarstruckFramework
 
 			if (mAxis == RectTransform.Axis.Vertical)
 			{
-				mTemplateSize = mListItem.GetComponent<RectTransform>().rect.height;
+				mTemplateSize = ListItemTemplate.GetComponent<RectTransform>().rect.height;
 				viewportSize = mScrollRect.GetComponent<RectTransform>().rect.height;
 
 				mContainerRect.anchorMin = new Vector2(0.0f, 1.0f);
@@ -62,7 +80,7 @@ namespace StarstruckFramework
 			}
 			else if (mAxis == RectTransform.Axis.Horizontal)
 			{
-				mTemplateSize = mListItem.GetComponent<RectTransform>().rect.width;
+				mTemplateSize = ListItemTemplate.GetComponent<RectTransform>().rect.width;
 				viewportSize = mScrollRect.GetComponent<RectTransform>().rect.width;
 
 				mContainerRect.anchorMin = new Vector2(0.0f, 0.0f);
@@ -113,7 +131,7 @@ namespace StarstruckFramework
 
 				if (i >= mItemList.Count)
 				{
-					gob = Instantiate(mListItem, mContainerRect);
+					gob = Instantiate(ListItemTemplate, mContainerRect);
 					mItemList.Add(gob.GetComponent<GUILiteScrollListItem>());
 				}
 				else

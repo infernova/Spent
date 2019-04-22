@@ -1,18 +1,19 @@
 ﻿using StarstruckFramework;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
-public class CostBreakdownListItem : SelectableListItem
+public class CategoryExpenditureListItem : SelectableListItem
 {
     [SerializeField]
     private Button mButton;
     [SerializeField]
-    private TextMeshProUGUI mPrimaryCat;
+    private TextMeshProUGUI mDate;
     [SerializeField]
     private TextMeshProUGUI mAmount;
     [SerializeField]
-    private TextMeshProUGUI mPercentage;
+    private TextMeshProUGUI mDesc;
 
     private void Start()
     {
@@ -23,10 +24,19 @@ public class CostBreakdownListItem : SelectableListItem
     {
         base.ResetPosition(index);
 
-        CostBreakdownItem item = MainScreen.Instance.CostBreakdownItems[index];
+        ExpenditureItem item = MainScreen.Instance.DisplayedItems[index];
+        mDate.text = item.Date.ToString("dd/MM/yy");
         mAmount.text = "$" + item.Amount.ToString("0.00");
-        mPrimaryCat.text = item.Category;
-        mPercentage.text = item.Percentage.ToString("0.0") + "%";
+        if (string.IsNullOrEmpty(item.Description))
+        {
+            mDesc.text = "No description";
+            mDesc.fontStyle = FontStyles.Italic;
+        }
+        else
+        {
+            mDesc.text = item.Description;
+            mDesc.fontStyle = FontStyles.Normal;
+        }
 
         SetAsSelected(index == MainScreen.Instance.CostBreakdownIndex);
     }

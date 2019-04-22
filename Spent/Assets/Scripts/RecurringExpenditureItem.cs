@@ -4,7 +4,7 @@ using UnityEngine.UI;
 using TMPro;
 
 
-public class RecurringExpenditureItem : GUILiteScrollListItem
+public class RecurringExpenditureItem : SelectableListItem
 {
     [SerializeField]
     private Button mButton;
@@ -16,37 +16,15 @@ public class RecurringExpenditureItem : GUILiteScrollListItem
     private TextMeshProUGUI mPrimaryCat;
     [SerializeField]
     private TextMeshProUGUI mSecondaryCat;
-    [SerializeField]
-    private Image mBackground;
-
-    private int mIndex;
 
     private void Start()
     {
         mButton.onClick.AddListener(() => MainScreen.Instance.SelectRecurringExpenditureItem(mIndex));
     }
 
-    public void CheckIfSelected(int index)
-    {
-        SetAsSelected(mIndex == index);
-    }
-
-    private void SetAsSelected(bool isSelected)
-    {
-        if (isSelected)
-        {
-            mBackground.color = new Color(0.8f, 0.8f, 0.8f, 1.0f);
-        }
-        else
-        {
-            mBackground.color = new Color(0.96f, 0.96f, 0.96f, 1.0f);
-        }
-    }
-
     public override void ResetPosition(int index)
     {
         base.ResetPosition(index);
-        mIndex = index;
 
         ExpenditureItem item = MainScreen.Instance.RecurringExpense.RecurringItemList[index];
         mDate.text = "Day " + item.Date.ToString("dd");

@@ -83,7 +83,7 @@ public class ExpenditureStats : ScriptableObject
     }
 
     private List<ExpenditureItem> mDisplayedItems = new List<ExpenditureItem>();
-    public List<ExpenditureItem> DisplayedItems
+    public List<ExpenditureItem> DateRangetems
     {
         get { return mDisplayedItems; }
     }
@@ -470,8 +470,13 @@ public class ExpenditureStats : ScriptableObject
 
     public void Remove(int index)
     {
-        RemoveCategory(Items[index]);
-        Items.RemoveAt(index);
+        Remove(Items[index]);
+    }
+
+    public void Remove(ExpenditureItem item)
+    {
+        RemoveCategory(item);
+        Items.Remove(item);
 
         EditCount++;
     }
