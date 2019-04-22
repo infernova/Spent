@@ -381,11 +381,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dacce960a2f64483bbb06b08973e9844, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  mBackground: {fileID: 114282519638771054}
   mButton: {fileID: 114892016205669074}
   mPrimaryCat: {fileID: 114996941887453366}
   mAmount: {fileID: 114732802464665164}
   mPercentage: {fileID: 114260897659998646}
-  mBackground: {fileID: 114282519638771054}
 --- !u!114 &114892016205669074
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -602,10 +602,10 @@ RectTransform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 1}
-  m_AnchorMax: {x: 0.5, y: 1}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 1250, y: 100}
+  m_SizeDelta: {x: 0, y: 100}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!224 &224832517053385452
 RectTransform:

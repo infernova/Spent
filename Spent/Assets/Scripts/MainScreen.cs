@@ -220,7 +220,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
     }
     #endregion
 
-    private DateTime pauseDate;
+    private DateTime pauseTime;
     private bool mIsInit;
 
     private void Start()
@@ -262,7 +262,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
         CheckRecurringExpenditure();
 
-        pauseDate = DateTime.Now.Date;
+        pauseTime = DateTime.Now.Date;
         mIsInit = true;
     }
 
@@ -271,23 +271,24 @@ public class MainScreen : SingletonBehavior<MainScreen>
         if (!pause)
         {
             if (!mAddExpenditureContainer.activeSelf
-                || (mIsInit && pauseDate < DateTime.Now.Date))
+                && mIsInit 
+                && DateTime.Now > pauseTime.AddMinutes(10))
             {
                 LoadBlankExpenditure();
+            }
 
-                if (mIsInit && pauseDate < DateTime.Now.Date)
-                {
-                    CheckRecurringExpenditure();
-                }
+            if (mIsInit && DateTime.Now.Date > pauseTime.Date)
+            {
+                CheckRecurringExpenditure();
             }
         }
         else
         {
-            pauseDate = DateTime.Now.Date;
+            pauseTime = DateTime.Now;
         }
     }
 
-    private void Update()
+	private void Update()
     {
         if (mAddExpenditureContainer.activeSelf)
         {
@@ -666,7 +667,17 @@ public class MainScreen : SingletonBehavior<MainScreen>
         }
     }
 
-    public void LoadPrimaryCatOptions(string text)
+    public void OnPrimaryCatSelect(string text)
+    {
+        LoadPrimaryCatOptions(text, true);
+    }
+
+    public void OnPrimaryCatChange(string text)
+    {
+        LoadPrimaryCatOptions(text, false);
+    }
+
+    private void LoadPrimaryCatOptions(string text, bool isSelect)
     {
         mPrimaryCatOptions = new List<string>();
         if (text.Length > 0)
@@ -695,11 +706,31 @@ public class MainScreen : SingletonBehavior<MainScreen>
         {
             mPrimaryCatOptions = Expenditures.LastUsedPrimaryCategories;
         }
+        else if (isSelect)
+        {
+            List<string> lastUsedOptions = new List<string>(Expenditures.LastUsedPrimaryCategories);
+            if (lastUsedOptions.Contains(text))
+            {
+                lastUsedOptions.Remove(text);
+            }
+
+            mPrimaryCatOptions.AddRange(lastUsedOptions);
+        }
 
         mPrimaryCatDropdown.UpdateOptions(mPrimaryCatOptions, true);
     }
 
-    public void LoadSecondaryCatOptions(string text)
+    public void OnSecondaryCatSelect(string text)
+    {
+        LoadSecondaryCatOptions(text, true);
+    }
+
+    public void OnSecondaryCatChange(string text)
+    {
+        LoadSecondaryCatOptions(text, false);
+    }
+
+    public void LoadSecondaryCatOptions(string text, bool isSelect)
     {
         mSecondaryCatOptions = new List<string>();
         if (text.Length > 0
@@ -729,9 +760,22 @@ public class MainScreen : SingletonBehavior<MainScreen>
             mSecondaryCatOptions.Add(text.ToUpper().Trim());
         }
 
-        if (text.Length == 0 && Expenditures.LastUsedSecondaryCategories.ContainsKey(mPrimaryCatField.text.ToUpper()))
+        if (Expenditures.LastUsedSecondaryCategories.ContainsKey(mPrimaryCatField.text.ToUpper()))
         {
-            mSecondaryCatOptions = Expenditures.LastUsedSecondaryCategories[mPrimaryCatField.text.ToUpper()];
+            if (text.Length == 0)
+            {
+                mSecondaryCatOptions = Expenditures.LastUsedSecondaryCategories[mPrimaryCatField.text.ToUpper()];
+            }
+            else if (isSelect)
+            {
+                List<string> lastUsedOptions = new List<string>(Expenditures.LastUsedSecondaryCategories[mPrimaryCatField.text.ToUpper()]);
+                if (lastUsedOptions.Contains(text))
+                {
+                    lastUsedOptions.Remove(text);
+                }
+
+                mSecondaryCatOptions.AddRange(lastUsedOptions);
+            }
         }
 
         mSecondaryCatDropdown.UpdateOptions(mSecondaryCatOptions, false);
