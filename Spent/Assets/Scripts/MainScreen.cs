@@ -41,19 +41,31 @@ public class MainScreen : SingletonBehavior<MainScreen>
             }
             else
             {
-                return Expenditures.DateRangetems;
+                return Expenditures.DateRangeItems;
             }
         }
     }
 
     #region Item Edit
+    public void SelectExpenditure(int index)
+    {
+        if (mExpenditureListContainer.gameObject.activeSelf)
+        {
+            SelectExpenditureListItem(index);
+        }
+        else if (mCostBreakdownContainer.gameObject.activeSelf)
+        {
+            SelectCostBreakdownItem(index);
+        }
+    }
+
     public void StartItemEdit()
     {
         SetDisplayState(DisplayState.EDIT);
 
         ExpenditureItem item = mIsCostBreakdownExpenseList 
             ? mCostBreakdownExpenditureListItems[CostBreakdownIndex]
-            : Expenditures.DateRangetems[EditIndex];
+            : Expenditures.DateRangeItems[EditIndex];
 
         mDayField.text = item.Date.ToString("dd");
         mMonthField.text = item.Date.ToString("MM");
@@ -95,7 +107,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
         ExpenditureItem item = mIsCostBreakdownExpenseList
             ? mCostBreakdownExpenditureListItems[CostBreakdownIndex]
-            : Expenditures.DateRangetems[EditIndex];
+            : Expenditures.DateRangeItems[EditIndex];
 
         DateTime editDateTime = item.Date.DateTime;
 
@@ -219,7 +231,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
         if (mExpenditureListContainer.activeSelf)
         {
-            mExpenditureList.Init(Expenditures.DateRangetems.Count);
+            mExpenditureList.Init(Expenditures.DateRangeItems);
         }
         else if (mCostBreakdownContainer.activeSelf)
         {
@@ -231,7 +243,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
     private DateTime pauseTime;
     private bool mIsInit;
 
-    private void Start()
+    private void Awake()
     {
         SetDisplayState(DisplayState.ADD);
 
@@ -886,7 +898,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
     [SerializeField]
     private GameObject mEditExpenditureButtonContainer;
     [SerializeField]
-    private GUILiteScrollList mExpenditureList;
+    private DailyExpenditureScrollList mExpenditureList;
     [SerializeField]
     private Button mEditExpenditureButton;
     [SerializeField]
@@ -911,7 +923,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
             for (int i = 0; i < mExpenditureList.ItemList.Count; i++)
             {
-                ((SelectableListItem)mExpenditureList.ItemList[i]).CheckIfSelected(mEditIndex);
+                mExpenditureList.ItemList[i].CheckIfSelected(mEditIndex);
             }
 
             mEditExpenditureButton.interactable = EditIndex != NULL_INDEX;
@@ -928,10 +940,10 @@ public class MainScreen : SingletonBehavior<MainScreen>
         RecurringEditIndex = NULL_INDEX;
 
         mExpenditureListContainer.SetActive(true);
-        mExpenditureList.Init(Expenditures.DateRangetems.Count);
+        mExpenditureList.Init(Expenditures.DateRangeItems);
     }
 
-    public void SelectExpenditureItem(int index)
+    public void SelectExpenditureListItem(int index)
     {
         EditIndex = index;
     }
@@ -947,6 +959,8 @@ public class MainScreen : SingletonBehavior<MainScreen>
     private TextMeshProUGUI mTotalSpendAmount;
     [SerializeField]
     private GUILiteScrollList mCostBreakdownList;
+    [SerializeField]
+    private DailyExpenditureScrollList mCostBreakdownDailyExpenditureList;
     [SerializeField]
     private TextMeshProUGUI mCostBreakdownDateRangeText;
     [SerializeField]
@@ -975,9 +989,20 @@ public class MainScreen : SingletonBehavior<MainScreen>
                 mCostBreakdownIndex = value;
             }
 
-            for (int i = 0; i < mCostBreakdownList.ItemList.Count; i++)
+            if (mCostBreakdownList.gameObject.activeSelf)
             {
-                ((SelectableListItem)mCostBreakdownList.ItemList[i]).CheckIfSelected(mCostBreakdownIndex);
+                for (int i = 0; i < mCostBreakdownList.ItemList.Count; i++)
+                {
+                    ((SelectableListItem)mCostBreakdownList.ItemList[i]).CheckIfSelected(mCostBreakdownIndex);
+                }
+            }
+
+            if (mCostBreakdownDailyExpenditureList.gameObject.activeSelf)
+            {
+                for (int i = 0; i < mCostBreakdownDailyExpenditureList.ItemList.Count; i++)
+                {
+                    mCostBreakdownDailyExpenditureList.ItemList[i].CheckIfSelected(mCostBreakdownIndex);
+                }
             }
 
             mCostBreakdownEditButton.GetComponent<Button>().interactable = mCostBreakdownIndex != NULL_INDEX;
@@ -992,6 +1017,9 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
     public void LoadCostBreakdown(string s, bool overrideInput)
     {
+        mCostBreakdownList.gameObject.SetActive(true);
+        mCostBreakdownDailyExpenditureList.gameObject.SetActive(false);
+
         EditIndex = NULL_INDEX;
         CostBreakdownIndex = NULL_INDEX;
         RecurringEditIndex = NULL_INDEX;
@@ -1014,7 +1042,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
             mCostBreakdownList.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,
                 mCostBreakdownScrollListMinSize + 300.0f);
 
-            foreach (ExpenditureItem item in Expenditures.DateRangetems)
+            foreach (ExpenditureItem item in Expenditures.DateRangeItems)
             {
                 totalAmount += item.Amount;
                 if (!categoryAmounts.ContainsKey(item.PrimaryCategory))
@@ -1027,7 +1055,8 @@ public class MainScreen : SingletonBehavior<MainScreen>
                 }
             }
 
-            mCostBreakdownList.ListItemTemplate = CostBreakdownListTemplate;
+            mCostBreakdownList.gameObject.SetActive(true);
+            mCostBreakdownDailyExpenditureList.gameObject.SetActive(false);
         }
         else
         {
@@ -1046,7 +1075,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
                 mSelectedCostBreakdownCat = s;
 
-                foreach (ExpenditureItem item in Expenditures.DateRangetems)
+                foreach (ExpenditureItem item in Expenditures.DateRangeItems)
                 {
                     if (!item.PrimaryCategory.Equals(s, StringComparison.InvariantCultureIgnoreCase))
                     {
@@ -1064,7 +1093,8 @@ public class MainScreen : SingletonBehavior<MainScreen>
                     }
                 }
 
-                mCostBreakdownList.ListItemTemplate = CostBreakdownListTemplate;
+                mCostBreakdownList.gameObject.SetActive(true);
+                mCostBreakdownDailyExpenditureList.gameObject.SetActive(false);
             }
             else
             {
@@ -1085,7 +1115,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
                 mCostBreakdownExpenditureListItems = new List<ExpenditureItem>();
 
-                foreach (ExpenditureItem item in Expenditures.DateRangetems)
+                foreach (ExpenditureItem item in Expenditures.DateRangeItems)
                 {
                     if (!item.PrimaryCategory.Equals(priCat, StringComparison.InvariantCultureIgnoreCase)
                         || !item.SecondaryCategory.Equals(secCat, StringComparison.InvariantCultureIgnoreCase))
@@ -1098,7 +1128,8 @@ public class MainScreen : SingletonBehavior<MainScreen>
                     mCostBreakdownExpenditureListItems.Add(item);
                 }
 
-                mCostBreakdownList.ListItemTemplate = CategoryExpenditureListTemplate;
+                mCostBreakdownList.gameObject.SetActive(false);
+                mCostBreakdownDailyExpenditureList.gameObject.SetActive(true);
 
                 mCostBreakdownEditButton.SetActive(true);
                 mCostBreakdownRemoveButton.SetActive(true);
@@ -1111,7 +1142,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
         if (mSelectedCostBreakdownCat.Contains("\t"))
         {
-            mCostBreakdownList.Init(mCostBreakdownExpenditureListItems.Count);
+            mCostBreakdownDailyExpenditureList.Init(mCostBreakdownExpenditureListItems);
         }
         else
         {

@@ -83,7 +83,7 @@ public class ExpenditureStats : ScriptableObject
     }
 
     private List<ExpenditureItem> mDisplayedItems = new List<ExpenditureItem>();
-    public List<ExpenditureItem> DateRangetems
+    public List<ExpenditureItem> DateRangeItems
     {
         get { return mDisplayedItems; }
     }

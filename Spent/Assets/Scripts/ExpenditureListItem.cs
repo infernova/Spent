@@ -18,7 +18,7 @@ public class ExpenditureListItem : SelectableListItem
 
 	private void Start()
 	{
-        mButton.onClick.AddListener(() => MainScreen.Instance.SelectExpenditureItem(mIndex));
+        mButton.onClick.AddListener(() => MainScreen.Instance.SelectExpenditureListItem(mIndex));
 	}
 
 	public override void ResetPosition(int index)
