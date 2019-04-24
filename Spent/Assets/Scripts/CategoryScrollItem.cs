@@ -10,14 +10,8 @@ public class CategoryScrollItem : MonoBehaviour
     [SerializeField]
     private TMP_Text mText;
 
-    private int mIndex;
-    private bool mIsPrimaryCat;
-
     public void Init(int index, string text, bool isPrimaryCat)
     {
-        mIndex = index;
-        mIsPrimaryCat = isPrimaryCat;
-
         gameObject.SetActive(true);
 
         if (isPrimaryCat)

@@ -280,7 +280,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
         {
             if (!mAddExpenditureContainer.activeSelf
                 && mIsInit 
-                && DateTime.Now > pauseTime.AddMinutes(10))
+                && DateTime.Now > pauseTime.AddMinutes(3))
             {
                 LoadBlankExpenditure();
             }
