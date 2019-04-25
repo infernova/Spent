@@ -102,6 +102,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   mDateTitle: {fileID: 114523016122496322}
+  mDateTitleContainer: {fileID: 224282626894689058}
   mItemTemplate: {fileID: 1179574874695442, guid: a3ee1f3a5e1af4b47b4051fd7571fe86,
     type: 2}
 --- !u!114 &114523016122496322
