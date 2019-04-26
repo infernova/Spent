@@ -19,11 +19,11 @@ public class SelectableListItem : GUILiteScrollListItem
     {
         if (isSelected)
         {
-            mBackground.color = new Color(0.8f, 0.8f, 0.8f, 1.0f);
+            mBackground.color = new Color(0.5f, 0.5f, 0.5f, 0.5f);
         }
         else
         {
-            mBackground.color = new Color(0.96f, 0.96f, 0.96f, 1.0f);
+            mBackground.color = new Color(0.5f, 0.5f, 0.5f, 0.0f);
         }
     }
 

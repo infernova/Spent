@@ -290,11 +290,11 @@ public class MainScreen : SingletonBehavior<MainScreen>
     {
         if (!pause)
         {
-            if (!mAddExpenditureContainer.activeSelf
-                && mIsInit 
-                && DateTime.Now > pauseTime.AddMinutes(3))
+            if (mIsInit 
+                && DateTime.Now > pauseTime.AddMinutes(5))
             {
                 LoadBlankExpenditure();
+                SetDisplayState(DisplayState.ADD);
             }
 
             if (mIsInit && DateTime.Now.Date > pauseTime.Date)
@@ -320,18 +320,29 @@ public class MainScreen : SingletonBehavior<MainScreen>
                 mEditExpenditureButtonContainer.SetActive(false);
                 mEditRecurringExpenditureButtonContainer.SetActive(false);
                 mAddExpenditureButtonContainer.SetActive(true);
+                mAddExpenditureRecurringButton.SetActive(true);
             }
             else if ((EditIndex != NULL_INDEX || CostBreakdownIndex != NULL_INDEX) && !mEditExpenditureButtonContainer.activeSelf)
             {
                 mEditExpenditureButtonContainer.SetActive(true);
                 mEditRecurringExpenditureButtonContainer.SetActive(false);
                 mAddExpenditureButtonContainer.SetActive(false);
+                mAddExpenditureRecurringButton.SetActive(false);
             }
             else if (RecurringEditIndex != NULL_INDEX && !mEditRecurringExpenditureButtonContainer.activeSelf)
             {
                 mEditExpenditureButtonContainer.SetActive(false);
                 mEditRecurringExpenditureButtonContainer.SetActive(true);
                 mAddExpenditureButtonContainer.SetActive(false);
+                mAddExpenditureRecurringButton.SetActive(false);
+            }
+
+            if (mAddExpenditureButtonContainer.activeSelf)
+            {
+                mAddExpenditureButton.interactable = !string.IsNullOrEmpty(mAmountField.text)
+                    && !string.IsNullOrEmpty(mPrimaryCatField.text)
+                    && !string.IsNullOrEmpty(mSecondaryCatField.text)
+                    && !mDayText.text.Equals(INVALID_DATE, StringComparison.InvariantCulture);
             }
         }
 
@@ -473,6 +484,10 @@ public class MainScreen : SingletonBehavior<MainScreen>
     [SerializeField]
     private GameObject mAddExpenditureButtonContainer;
     [SerializeField]
+    private Button mAddExpenditureButton;
+    [SerializeField]
+    private GameObject mAddExpenditureRecurringButton;
+    [SerializeField]
     private TMP_InputField mDayField;
     [SerializeField]
     private TMP_InputField mMonthField;
@@ -606,6 +621,8 @@ public class MainScreen : SingletonBehavior<MainScreen>
         OnDateEndEdit();
     }
 
+    private const string INVALID_DATE = "(Invalid)";
+
     public void OnDateEndEdit()
     {
         try
@@ -615,7 +632,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
                 int day = int.Parse(mDayField.text);
                 if (day < 0 || day > 31)
                 {
-                    mDayText.text = "(Invalid)";
+                    mDayText.text = INVALID_DATE;
                 }
                 else
                 {
@@ -658,7 +675,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
         }
         catch
         {
-            mDayText.text = "(Invalid)";
+            mDayText.text = INVALID_DATE;
         }
     }
 
@@ -1038,7 +1055,6 @@ public class MainScreen : SingletonBehavior<MainScreen>
             mCostBreakdownTitle.SetText("TOTAL SPENDING");
             mCostBreakdownBackButton.SetActive(false);
 
-            mCostBreakdownList.GetComponent<RectTransform>().anchoredPosition = new Vector2(0.0f, 300.0f);
             mCostBreakdownList.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,
                 mCostBreakdownScrollListMinSize + 300.0f);
 
@@ -1062,7 +1078,6 @@ public class MainScreen : SingletonBehavior<MainScreen>
         {
             mCostBreakdownBackButton.SetActive(true);
 
-            mCostBreakdownList.GetComponent<RectTransform>().anchoredPosition = new Vector2(0.0f, 450.0f);
             mCostBreakdownList.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,
                 mCostBreakdownScrollListMinSize + 150.0f);
 
@@ -1134,7 +1149,6 @@ public class MainScreen : SingletonBehavior<MainScreen>
                 mCostBreakdownEditButton.SetActive(true);
                 mCostBreakdownRemoveButton.SetActive(true);
 
-                mCostBreakdownList.GetComponent<RectTransform>().anchoredPosition = new Vector2(0.0f, 600.0f);
                 mCostBreakdownList.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,
                     mCostBreakdownScrollListMinSize + 0.0f);
             }
