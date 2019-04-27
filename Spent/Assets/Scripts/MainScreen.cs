@@ -237,6 +237,8 @@ public class MainScreen : SingletonBehavior<MainScreen>
         {
             LoadCostBreakdown(mSelectedCostBreakdownCat);
         }
+
+        RepositionCostBreakdownBarChart();
     }
     #endregion
 
@@ -284,6 +286,8 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
         pauseTime = DateTime.Now.Date;
         mIsInit = true;
+
+        mCostBreakdownBarChartWidth = mCostBreakdownBarChartScrollView.GetComponent<RectTransform>().rect.width;
     }
 
     private void OnApplicationPause(bool pause)
@@ -987,10 +991,46 @@ public class MainScreen : SingletonBehavior<MainScreen>
     [SerializeField]
     private GameObject mCostBreakdownRemoveButton;
     public List<CostBreakdownItem> CostBreakdownItems;
+    [HideInInspector]
+    public List<Color> CostBreakdownItemColours;
+
     private string mSelectedCostBreakdownCat = string.Empty;
     private int mCostBreakdownIndex = NULL_INDEX;
+
     [SerializeField]
     private int mCostBreakdownScrollListMinSize;
+
+    [SerializeField]
+    private GameObject mCostBreakdownPieChartContainer;
+    [SerializeField]
+    private GameObject mCostBreakdownPieChartTemplate;
+    [SerializeField]
+    private GameObject mCostBreakdownPieChartButton;
+    private List<GameObject> mCostBreakdownPieChartInstances = new List<GameObject>();
+
+    [SerializeField]
+    private GameObject mCostBreakdownBarChartContainer;
+    [SerializeField]
+    private GameObject mCostBreakdownBarChartButton;
+    [SerializeField]
+    private ScrollRect mCostBreakdownBarChartScrollView;
+    [SerializeField]
+    private TextMeshProUGUI[] mCostBreakdownBarChartLineAmounts;
+    [SerializeField]
+    private RectTransform[] mCostBreakdownBarChartLineTrans;
+    [SerializeField]
+    private RectTransform mCostBreakdownBarChartLeftAxis;
+    [SerializeField]
+    private RectTransform mCostBreakdownBarChartScrollViewContent;
+    [SerializeField]
+    private GameObject mCostBreakdownBarChartScrollBar;
+    [SerializeField]
+    private GameObject mCostBreakdownBarChartScrollViewTemplate;
+    private List<GameObject> mCostBreakdownBarChartInstances = new List<GameObject>();
+    private float mCostBreakdownBarChartWidth;
+    private int mCostBreakdownNumMonths;
+    private const float COST_BREAKDOWN_MAX_BAR_INTERVAL = 4.65f;
+
     public int CostBreakdownIndex
     {
         get { return mCostBreakdownIndex; }
@@ -1044,6 +1084,11 @@ public class MainScreen : SingletonBehavior<MainScreen>
         mCostBreakdownContainer.SetActive(true);
 
         float totalAmount = 0.0f;
+        List<float> monthlyAmounts = new List<float> { 0.0f };
+        DateTime startingMonth = Expenditures.Items[Expenditures.Items.Count - 1].Date;
+        startingMonth = new DateTime(startingMonth.Year, startingMonth.Month, 1);
+        DateTime currMonth = new DateTime(startingMonth.Year, startingMonth.Month, 1);
+
         Dictionary<string, float> categoryAmounts = new Dictionary<string, float>();
 
         mCostBreakdownEditButton.SetActive(false);
@@ -1058,16 +1103,32 @@ public class MainScreen : SingletonBehavior<MainScreen>
             mCostBreakdownList.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,
                 mCostBreakdownScrollListMinSize + 300.0f);
 
-            foreach (ExpenditureItem item in Expenditures.DateRangeItems)
+            for (int i = Expenditures.Items.Count - 1; i >= 0; i--)
             {
-                totalAmount += item.Amount;
-                if (!categoryAmounts.ContainsKey(item.PrimaryCategory))
+                ExpenditureItem item = Expenditures.Items[i];
+
+                while (!(item.Date.DateTime.Year == currMonth.Year && item.Date.DateTime.Month == currMonth.Month))
                 {
-                    categoryAmounts.Add(item.PrimaryCategory, item.Amount);
+                    currMonth = currMonth.AddMonths(1);
+                    monthlyAmounts.Add(0.0f);
                 }
-                else
+
+                monthlyAmounts[monthlyAmounts.Count - 1] += item.Amount;
+
+                DateTime itemDate = item.Date;
+
+                if (Expenditures.DateRange.Year == 1 ||
+                    (itemDate.Year == Expenditures.DateRange.Year && itemDate.Month == Expenditures.DateRange.Month))
                 {
-                    categoryAmounts[item.PrimaryCategory] += item.Amount;
+                    totalAmount += item.Amount;
+                    if (!categoryAmounts.ContainsKey(item.PrimaryCategory))
+                    {
+                        categoryAmounts.Add(item.PrimaryCategory, item.Amount);
+                    }
+                    else
+                    {
+                        categoryAmounts[item.PrimaryCategory] += item.Amount;
+                    }
                 }
             }
 
@@ -1090,21 +1151,37 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
                 mSelectedCostBreakdownCat = s;
 
-                foreach (ExpenditureItem item in Expenditures.DateRangeItems)
+                for (int i = Expenditures.Items.Count - 1; i >= 0; i--)
                 {
+                    ExpenditureItem item = Expenditures.Items[i];
+
+                    while (!(item.Date.DateTime.Year == currMonth.Year && item.Date.DateTime.Month == currMonth.Month))
+                    {
+                        currMonth = currMonth.AddMonths(1);
+                        monthlyAmounts.Add(0.0f);
+                    }
+
                     if (!item.PrimaryCategory.Equals(s, StringComparison.InvariantCultureIgnoreCase))
                     {
                         continue;
                     }
 
-                    totalAmount += item.Amount;
-                    if (!categoryAmounts.ContainsKey(item.SecondaryCategory))
+                    monthlyAmounts[monthlyAmounts.Count - 1] += item.Amount;
+
+                    DateTime itemDate = item.Date;
+
+                    if (Expenditures.DateRange.Year == 1 ||
+                        (itemDate.Year == Expenditures.DateRange.Year && itemDate.Month == Expenditures.DateRange.Month))
                     {
-                        categoryAmounts.Add(item.SecondaryCategory, item.Amount);
-                    }
-                    else
-                    {
-                        categoryAmounts[item.SecondaryCategory] += item.Amount;
+                        totalAmount += item.Amount;
+                        if (!categoryAmounts.ContainsKey(item.SecondaryCategory))
+                        {
+                            categoryAmounts.Add(item.SecondaryCategory, item.Amount);
+                        }
+                        else
+                        {
+                            categoryAmounts[item.SecondaryCategory] += item.Amount;
+                        }
                     }
                 }
 
@@ -1130,17 +1207,33 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
                 mCostBreakdownExpenditureListItems = new List<ExpenditureItem>();
 
-                foreach (ExpenditureItem item in Expenditures.DateRangeItems)
+                for (int i = Expenditures.Items.Count - 1; i >= 0; i--)
                 {
+                    ExpenditureItem item = Expenditures.Items[i];
+
+                    while (!(item.Date.DateTime.Year == currMonth.Year && item.Date.DateTime.Month == currMonth.Month))
+                    {
+                        currMonth = currMonth.AddMonths(1);
+                        monthlyAmounts.Add(0.0f);
+                    }
+
                     if (!item.PrimaryCategory.Equals(priCat, StringComparison.InvariantCultureIgnoreCase)
                         || !item.SecondaryCategory.Equals(secCat, StringComparison.InvariantCultureIgnoreCase))
                     {
                         continue;
                     }
 
-                    totalAmount += item.Amount;
+                    monthlyAmounts[monthlyAmounts.Count - 1] += item.Amount;
 
-                    mCostBreakdownExpenditureListItems.Add(item);
+                    DateTime itemDate = item.Date;
+
+                    if (Expenditures.DateRange.Year == 1 ||
+                        (itemDate.Year == Expenditures.DateRange.Year && itemDate.Month == Expenditures.DateRange.Month))
+                    {
+                        totalAmount += item.Amount;
+
+                        mCostBreakdownExpenditureListItems.Add(item);
+                    }
                 }
 
                 mCostBreakdownList.gameObject.SetActive(false);
@@ -1154,23 +1247,218 @@ public class MainScreen : SingletonBehavior<MainScreen>
             }
         }
 
+        float lineInterval = 0.0f;
+
         if (mSelectedCostBreakdownCat.Contains("\t"))
         {
             mCostBreakdownDailyExpenditureList.Init(mCostBreakdownExpenditureListItems);
+
+            lineInterval = 82.5f;
+
+            mCostBreakdownPieChartButton.SetActive(false);
+            mCostBreakdownBarChartButton.SetActive(false);
+
+            mCostBreakdownPieChartContainer.SetActive(false);
+            mCostBreakdownBarChartContainer.SetActive(true);
         }
         else
         {
             CostBreakdownItems = new List<CostBreakdownItem>();
+            CostBreakdownItemColours = new List<Color>();
             foreach (KeyValuePair<string, float> pair in categoryAmounts)
             {
                 CostBreakdownItems.Add(new CostBreakdownItem(pair.Key, pair.Value, (pair.Value / totalAmount) * 100.0f));
+                CostBreakdownItemColours.Add(new Color(UnityEngine.Random.Range(0.0f, 1.0f),
+                    UnityEngine.Random.Range(0.0f, 1.0f),
+                    UnityEngine.Random.Range(0.0f, 1.0f)));
             }
 
             CostBreakdownItems.Sort();
             mCostBreakdownList.Init(CostBreakdownItems.Count);
+
+            foreach(GameObject pie in mCostBreakdownPieChartInstances)
+            {
+                Destroy(pie);
+            }
+
+            float percent = 1.0f;
+
+            for (int i = CostBreakdownItems.Count - 1; i >= 0; i--)
+            {
+                GameObject pieSlice = Instantiate(mCostBreakdownPieChartTemplate,
+                    mCostBreakdownPieChartContainer.transform);
+                pieSlice.SetActive(true);
+                pieSlice.GetComponent<Image>().color = CostBreakdownItemColours[i];
+
+                pieSlice.GetComponent<Image>().fillAmount = percent;
+
+                percent -= CostBreakdownItems[i].Percentage * 0.01f;
+
+                mCostBreakdownPieChartInstances.Add(pieSlice);
+            }
+
+            lineInterval = 67.5f;
+
+            mCostBreakdownPieChartButton.SetActive(true);
+            mCostBreakdownBarChartButton.SetActive(true);
+
+            mCostBreakdownPieChartContainer.SetActive(!mCostBreakdownPieChartButton.GetComponent<Button>().interactable);
+            mCostBreakdownBarChartContainer.SetActive(!mCostBreakdownBarChartButton.GetComponent<Button>().interactable);
+
+            for (int i = 0; i < mCostBreakdownList.ItemList.Count; i++)
+            {
+                ((CostBreakdownListItem)mCostBreakdownList.ItemList[i]).IsColoursVisibile(!mCostBreakdownPieChartButton.GetComponent<Button>().interactable);
+            }
         }
 
+        foreach (GameObject bar in mCostBreakdownBarChartInstances)
+        {
+            Destroy(bar);
+        }
+
+        float barInteval = 0.0f;
+
+        if (monthlyAmounts.Count <= 4)
+        {
+            mCostBreakdownBarChartScrollViewContent.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal,
+                mCostBreakdownBarChartWidth);
+
+            barInteval = mCostBreakdownBarChartScrollViewContent.rect.width / (float)monthlyAmounts.Count;
+
+            mCostBreakdownBarChartScrollView.horizontal = false;
+            mCostBreakdownBarChartScrollBar.SetActive(false);
+        }
+        else
+        {
+            barInteval = mCostBreakdownBarChartWidth / COST_BREAKDOWN_MAX_BAR_INTERVAL;
+
+            mCostBreakdownBarChartScrollViewContent.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal,
+                barInteval * monthlyAmounts.Count);
+
+            mCostBreakdownBarChartScrollView.horizontal = true;
+            mCostBreakdownBarChartScrollBar.SetActive(true);
+        }
+
+        float maxAmount = 0.0f;
+        foreach (float amount in monthlyAmounts)
+        {
+            maxAmount = Mathf.Max(amount, maxAmount);
+        }
+
+        int magnitude = 1;
+        while (maxAmount >= 10.0f)
+        {
+            maxAmount *= 0.1f;
+            magnitude *= 10;
+        }
+
+        maxAmount = Mathf.Ceil(maxAmount);
+        maxAmount *= magnitude;
+
+        float baseLinePos = mCostBreakdownBarChartLineTrans[0].anchoredPosition.y;
+
+        for (int i = 0; i < 5; i++)
+        {
+            float lineAmount = maxAmount * (0.2f * (i + 1));
+
+            if (maxAmount < 100.0f)
+            {
+                mCostBreakdownBarChartLineAmounts[i].SetText("$" + lineAmount.ToString("0.00"));
+            }
+            else
+            {
+                mCostBreakdownBarChartLineAmounts[i].SetText("$" + Mathf.RoundToInt(lineAmount).ToString());
+            }
+
+            mCostBreakdownBarChartLineTrans[i + 1].anchoredPosition = 
+                new Vector2(0.0f, baseLinePos + (lineInterval * (i + 1)));
+        }
+
+        mCostBreakdownBarChartLeftAxis.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,
+            (lineInterval * 5.0f) + 37.5f);
+
+        mCostBreakdownBarChartScrollViewTemplate
+            .GetComponent<CostBreakdownBarItem>().MaxBarHeight = lineInterval * 5.0f;
+
+        for (int i = 0; i < monthlyAmounts.Count; i++)
+        {
+            GameObject bar = Instantiate(mCostBreakdownBarChartScrollViewTemplate,
+                mCostBreakdownBarChartScrollViewContent);
+
+            bar.SetActive(true);
+
+            DateTime barMonth = startingMonth.AddMonths(i);
+            bool isSelectedMonth = Expenditures.DateRange.Year == 1 ||
+                (Expenditures.DateRange.Year == barMonth.Year && Expenditures.DateRange.Month == barMonth.Month);
+
+            bar.GetComponent<RectTransform>().anchoredPosition = new Vector2(barInteval * (i + 0.5f), 0.0f);
+            bar.GetComponent<CostBreakdownBarItem>().Init(barMonth,
+                monthlyAmounts[i] / maxAmount,
+                isSelectedMonth);
+            mCostBreakdownBarChartInstances.Add(bar);
+        }
+
+        mCostBreakdownNumMonths = monthlyAmounts.Count;
+        RepositionCostBreakdownBarChart();
+
         mTotalSpendAmount.text = "$" + totalAmount.ToString("0.00");
+    }
+
+    private void RepositionCostBreakdownBarChart()
+    {
+        if (mCostBreakdownBarChartContainer.activeInHierarchy)
+        {
+            if (mCostBreakdownNumMonths > 4)
+            {
+                if (Expenditures.DateRange.Year == 1)
+                {
+                    mCostBreakdownBarChartScrollViewContent.anchoredPosition =
+                        new Vector2(mCostBreakdownBarChartWidth - mCostBreakdownBarChartScrollViewContent.rect.width, 0.0f);
+                }
+                else
+                {
+                    DateTime startingMonth = Expenditures.Items[Expenditures.Items.Count - 1].Date;
+                    startingMonth = new DateTime(startingMonth.Year, startingMonth.Month, 1);
+
+                    float barInteval = mCostBreakdownBarChartWidth / COST_BREAKDOWN_MAX_BAR_INTERVAL;
+
+                    int numMonths = 0;
+
+                    while (!(startingMonth.AddMonths(numMonths).Year == Expenditures.DateRange.Year
+                        && startingMonth.AddMonths(numMonths).Month == Expenditures.DateRange.Month))
+                    {
+                        numMonths++;
+                    }
+
+                    float pos = mCostBreakdownBarChartWidth * 0.5f - ((numMonths + 0.5f) * barInteval);
+
+                    pos = Mathf.Min(0.0f, pos);
+                    pos = Mathf.Max(mCostBreakdownBarChartWidth - mCostBreakdownBarChartScrollViewContent.rect.width, pos);
+
+                    mCostBreakdownBarChartScrollViewContent.anchoredPosition =
+                        new Vector2(pos, 0.0f);
+                }
+            }
+        }
+    }
+
+    public void SetChartVisibility(bool isPieChart)
+    {
+        mCostBreakdownPieChartButton.GetComponent<Button>().interactable = !isPieChart;
+        mCostBreakdownBarChartButton.GetComponent<Button>().interactable = isPieChart;
+
+        mCostBreakdownPieChartContainer.SetActive(isPieChart);
+        mCostBreakdownBarChartContainer.SetActive(!isPieChart);
+
+        for (int i = 0; i < mCostBreakdownList.ItemList.Count; i++)
+        {
+            ((CostBreakdownListItem)mCostBreakdownList.ItemList[i]).IsColoursVisibile(isPieChart);
+        }
+
+        if (!isPieChart)
+        {
+            RepositionCostBreakdownBarChart();
+        }
     }
 
     public void SelectPreviousCostBreakdown()
