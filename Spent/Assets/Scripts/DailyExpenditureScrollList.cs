@@ -90,8 +90,17 @@ public class DailyExpenditureScrollList : MonoBehaviour
             mCurrDisplay.Add(setItem.GetComponent<DailyExpenditureSetItem>());
         }
 
-        mContainerRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, -mBottomPos);
-	}
+        int sizeIndex = 0;
+        float containerSize = 0.0f;
+        
+        while (sizeIndex < items.Count)
+        {
+            containerSize += mListItemTemplate.GetComponent<DailyExpenditureSetItem>().GetSize(items,
+                ref sizeIndex);
+        }
+
+        mContainerRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, containerSize);
+    }
 
     private void Update()
     {
@@ -99,26 +108,21 @@ public class DailyExpenditureScrollList : MonoBehaviour
         mTopBorder = -containerPos;
         mBottomBorder = -containerPos - mViewportSize;
 
-        if (mLastIndex < mItems.Count && mBottomBorder < mBottomPos)
+        while (mLastIndex < mItems.Count && mBottomBorder < mBottomPos)
         {
-            do
-            {
-                GameObject setItem = Instantiate(mListItemTemplate, mContainerRect);
-                float itemHeight = 0.0f;
-                List<DailyExpenditureListItem> additionalItems = null;
-                setItem.GetComponent<DailyExpenditureSetItem>().LoadExpenditures(mItems,
-                    mBottomPos,
-                    ref mLastIndex,
-                    out itemHeight,
-                    out additionalItems);
+            GameObject setItem = Instantiate(mListItemTemplate, mContainerRect);
+            float itemHeight = 0.0f;
+            List<DailyExpenditureListItem> additionalItems = null;
+            setItem.GetComponent<DailyExpenditureSetItem>().LoadExpenditures(mItems,
+                mBottomPos,
+                ref mLastIndex,
+                out itemHeight,
+                out additionalItems);
 
-                mItemList.AddRange(additionalItems);
-                mBottomPos -= itemHeight;
+            mItemList.AddRange(additionalItems);
+            mBottomPos -= itemHeight;
 
-                mCurrDisplay.Add(setItem.GetComponent<DailyExpenditureSetItem>());
-            } while (mLastIndex < mItems.Count && mBottomBorder < mBottomPos);
-
-            mContainerRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, -mBottomPos);
+            mCurrDisplay.Add(setItem.GetComponent<DailyExpenditureSetItem>());
         }
 
         while (mLastIndex > 0 && mBottomBorder > mCurrDisplay[mCurrDisplay.Count - 1].TopPos)

@@ -1268,9 +1268,22 @@ public class MainScreen : SingletonBehavior<MainScreen>
             foreach (KeyValuePair<string, float> pair in categoryAmounts)
             {
                 CostBreakdownItems.Add(new CostBreakdownItem(pair.Key, pair.Value, (pair.Value / totalAmount) * 100.0f));
-                CostBreakdownItemColours.Add(new Color(UnityEngine.Random.Range(0.0f, 1.0f),
-                    UnityEngine.Random.Range(0.0f, 1.0f),
-                    UnityEngine.Random.Range(0.0f, 1.0f)));
+                Color newColour = Color.black;
+                Color prevColour = CostBreakdownItemColours.Count == 0 
+                    ? Color.black 
+                    : CostBreakdownItemColours[CostBreakdownItemColours.Count - 1];
+
+                do
+                {
+                    newColour = new Color(UnityEngine.Random.Range(0.0f, 1.0f),
+                        UnityEngine.Random.Range(0.0f, 1.0f),
+                        UnityEngine.Random.Range(0.0f, 1.0f));
+                } while (CostBreakdownItemColours.Count != 0
+                && (Mathf.Abs(newColour.r - prevColour.r) < 0.15f
+                || Mathf.Abs(newColour.g - prevColour.g) < 0.15f
+                || Mathf.Abs(newColour.b - prevColour.b) < 0.15f));
+
+                CostBreakdownItemColours.Add(newColour);
             }
 
             CostBreakdownItems.Sort();

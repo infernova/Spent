@@ -33,6 +33,26 @@ public class DailyExpenditureSetItem : MonoBehaviour
         mIsInit = true;
     }
 
+    public float GetSize(List<ExpenditureItem> list, ref int index)
+    {
+        if (index >= list.Count)
+        {
+            return 0.0f;
+        }
+
+        DateTime selectedDate = list[index].Date;
+        float itemHeight = mItemTemplate.GetComponent<RectTransform>().rect.height;
+        int itemCount = 0;
+
+        while (index + itemCount < list.Count && list[index + itemCount].Date.DateTime.Date == selectedDate.Date)
+        {
+            itemCount++;
+        }
+
+        index += itemCount;
+        return mDateTitleContainer.rect.height + itemHeight * itemCount;
+    }
+
     public void LoadExpenditures(List<ExpenditureItem> list,
         float topPos,
         ref int index,
