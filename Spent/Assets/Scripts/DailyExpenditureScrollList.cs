@@ -102,6 +102,11 @@ public class DailyExpenditureScrollList : MonoBehaviour
         mContainerRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, containerSize);
     }
 
+    private void FixedUpdate()
+    {
+        Update();
+    }
+
     private void Update()
     {
         float containerPos = mContainerRect.anchoredPosition.y;

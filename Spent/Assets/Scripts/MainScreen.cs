@@ -317,7 +317,14 @@ public class MainScreen : SingletonBehavior<MainScreen>
     {
         if (Application.platform == RuntimePlatform.Android)
         {
-            Debug.Log("Num touches: " + Touchscreen.current.activeTouches.Count);
+            Touchscreen ts = Touchscreen.current;
+            string log = "Touch phases: ";
+            foreach (UnityEngine.Experimental.Input.Controls.TouchControl control in ts.allTouchControls)
+            {
+                log += control.ReadValue().phase;
+                log += ", ";
+            }
+            Debug.Log(log);
         }
 
         if (mAddExpenditureContainer.activeSelf)
