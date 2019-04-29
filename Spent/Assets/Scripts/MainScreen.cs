@@ -4,6 +4,7 @@ using UnityEngine.UI;
 using StarstruckFramework;
 using System;
 using System.Collections.Generic;
+using UnityEngine.Experimental.Input;
 
 public class MainScreen : SingletonBehavior<MainScreen>
 {
@@ -295,7 +296,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
         if (!pause)
         {
             if (mIsInit 
-                && DateTime.Now > pauseTime.AddMinutes(5))
+                && DateTime.Now > pauseTime.AddMinutes(3))
             {
                 LoadBlankExpenditure();
                 SetDisplayState(DisplayState.ADD);
@@ -314,6 +315,11 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
 	private void Update()
     {
+        if (Application.platform == RuntimePlatform.Android)
+        {
+            Debug.Log("Num touches: " + Touchscreen.current.activeTouches.Count);
+        }
+
         if (mAddExpenditureContainer.activeSelf)
         {
             if (EditIndex == NULL_INDEX
@@ -1251,6 +1257,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
         if (mSelectedCostBreakdownCat.Contains("\t"))
         {
+            mCostBreakdownExpenditureListItems.Reverse();
             mCostBreakdownDailyExpenditureList.Init(mCostBreakdownExpenditureListItems);
 
             lineInterval = 82.5f;
