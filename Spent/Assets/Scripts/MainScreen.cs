@@ -1279,9 +1279,12 @@ public class MainScreen : SingletonBehavior<MainScreen>
         {
             CostBreakdownItems = new List<CostBreakdownItem>();
             CostBreakdownItemColours = new List<Color>();
+
             foreach (KeyValuePair<string, float> pair in categoryAmounts)
             {
                 CostBreakdownItems.Add(new CostBreakdownItem(pair.Key, pair.Value, (pair.Value / totalAmount) * 100.0f));
+
+                /*
                 Color newColour = Color.black;
                 Color prevColour = CostBreakdownItemColours.Count == 0 
                     ? Color.black 
@@ -1296,6 +1299,52 @@ public class MainScreen : SingletonBehavior<MainScreen>
                 && (Mathf.Abs(newColour.r - prevColour.r) < 0.15f
                 || Mathf.Abs(newColour.g - prevColour.g) < 0.15f
                 || Mathf.Abs(newColour.b - prevColour.b) < 0.15f));
+
+                CostBreakdownItemColours.Add(newColour);
+                */
+
+                HSBColor newHSBColour = new HSBColor();
+                Color newColour = Color.black;
+                Color prevColour = CostBreakdownItemColours.Count == 0
+                    ? Color.black
+                    : CostBreakdownItemColours[CostBreakdownItemColours.Count - 1];
+
+                if (CostBreakdownItemColours.Count < categoryAmounts.Count - 1)
+                {
+                    int loopCount = 0;
+                    do
+                    {
+                        newHSBColour = new HSBColor(UnityEngine.Random.Range(0.0f, 1.0f),
+                            UnityEngine.Random.Range(0.2f, 0.5f),
+                            UnityEngine.Random.Range(0.75f, 1.0f));
+                        newColour = newHSBColour.ToColor();
+                        loopCount++;
+                    } while (loopCount < 100
+                    && CostBreakdownItemColours.Count != 0
+                    && (Mathf.Abs(newColour.r - prevColour.r) < 0.1f
+                    || Mathf.Abs(newColour.g - prevColour.g) < 0.1f
+                    || Mathf.Abs(newColour.b - prevColour.b) < 0.1f));
+                }
+                else
+                {
+                    int loopCount = 0;
+                    Color firstColor = CostBreakdownItemColours[0];
+                    do
+                    {
+                        newHSBColour = new HSBColor(UnityEngine.Random.Range(0.0f, 1.0f),
+                            UnityEngine.Random.Range(0.2f, 0.5f),
+                            UnityEngine.Random.Range(0.75f, 1.0f));
+                        newColour = newHSBColour.ToColor();
+                        loopCount++;
+                    } while (loopCount < 100
+                    && (Mathf.Abs(newColour.r - prevColour.r) < 0.1f
+                    || Mathf.Abs(newColour.g - prevColour.g) < 0.1f
+                    || Mathf.Abs(newColour.b - prevColour.b) < 0.1f
+                    || Mathf.Abs(newColour.r - firstColor.r) < 0.1f
+                    || Mathf.Abs(newColour.g - firstColor.g) < 0.1f
+                    || Mathf.Abs(newColour.b - firstColor.b) < 0.1f));
+                }
+                
 
                 CostBreakdownItemColours.Add(newColour);
             }

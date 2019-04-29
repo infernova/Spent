@@ -43,6 +43,7 @@ public class DailyExpenditureScrollList : MonoBehaviour
         if (mIsInit) return;
 
         mViewportSize = GetComponent<RectTransform>().rect.height;
+        mScrollRect.onValueChanged.AddListener(OnScrollValueChanged);
 
         mIsInit = true;
     }
@@ -102,12 +103,7 @@ public class DailyExpenditureScrollList : MonoBehaviour
         mContainerRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, containerSize);
     }
 
-    private void FixedUpdate()
-    {
-        Update();
-    }
-
-    private void Update()
+    public void OnScrollValueChanged(Vector2 pos)
     {
         float containerPos = mContainerRect.anchoredPosition.y;
         mTopBorder = -containerPos;
