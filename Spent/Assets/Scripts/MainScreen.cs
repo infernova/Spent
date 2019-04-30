@@ -1309,7 +1309,8 @@ public class MainScreen : SingletonBehavior<MainScreen>
                     ? Color.black
                     : CostBreakdownItemColours[CostBreakdownItemColours.Count - 1];
 
-                if (CostBreakdownItemColours.Count < categoryAmounts.Count - 1)
+                if (CostBreakdownItemColours.Count < categoryAmounts.Count - 1
+                    || categoryAmounts.Count == 1)
                 {
                     int loopCount = 0;
                     do
@@ -1320,10 +1321,10 @@ public class MainScreen : SingletonBehavior<MainScreen>
                         newColour = newHSBColour.ToColor();
                         loopCount++;
                     } while (loopCount < 100
-                    && CostBreakdownItemColours.Count != 0
-                    && (Mathf.Abs(newColour.r - prevColour.r) < 0.1f
-                    || Mathf.Abs(newColour.g - prevColour.g) < 0.1f
-                    || Mathf.Abs(newColour.b - prevColour.b) < 0.1f));
+                             && CostBreakdownItemColours.Count != 0
+                             && (Mathf.Abs(newColour.r - prevColour.r) < 0.1f
+                                 || Mathf.Abs(newColour.g - prevColour.g) < 0.1f
+                                 || Mathf.Abs(newColour.b - prevColour.b) < 0.1f));
                 }
                 else
                 {
@@ -1337,12 +1338,12 @@ public class MainScreen : SingletonBehavior<MainScreen>
                         newColour = newHSBColour.ToColor();
                         loopCount++;
                     } while (loopCount < 100
-                    && (Mathf.Abs(newColour.r - prevColour.r) < 0.1f
-                    || Mathf.Abs(newColour.g - prevColour.g) < 0.1f
-                    || Mathf.Abs(newColour.b - prevColour.b) < 0.1f
-                    || Mathf.Abs(newColour.r - firstColor.r) < 0.1f
-                    || Mathf.Abs(newColour.g - firstColor.g) < 0.1f
-                    || Mathf.Abs(newColour.b - firstColor.b) < 0.1f));
+                             && (Mathf.Abs(newColour.r - prevColour.r) < 0.1f
+                                 || Mathf.Abs(newColour.g - prevColour.g) < 0.1f
+                                 || Mathf.Abs(newColour.b - prevColour.b) < 0.1f
+                                 || Mathf.Abs(newColour.r - firstColor.r) < 0.1f
+                                 || Mathf.Abs(newColour.g - firstColor.g) < 0.1f
+                                 || Mathf.Abs(newColour.b - firstColor.b) < 0.1f));
                 }
                 
 
