@@ -1364,9 +1364,9 @@ public class MainScreen : SingletonBehavior<MainScreen>
                 GameObject pieSlice = Instantiate(mCostBreakdownPieChartTemplate,
                     mCostBreakdownPieChartContainer.transform);
                 pieSlice.SetActive(true);
-                pieSlice.GetComponent<Image>().color = CostBreakdownItemColours[i];
+                pieSlice.GetComponent<PieChartItem>().SetColour(CostBreakdownItemColours[i]);
 
-                pieSlice.GetComponent<Image>().fillAmount = percent;
+                pieSlice.GetComponent<PieChartItem>().SetPercentage(percent);
 
                 percent -= CostBreakdownItems[i].Percentage * 0.01f;
 
