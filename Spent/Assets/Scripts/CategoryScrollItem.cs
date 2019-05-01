@@ -1,18 +1,23 @@
 ﻿using UnityEngine.UI;
 using UnityEngine;
-using UnityEngine.EventSystems;
+using StarstruckFramework;
 using TMPro;
 
-public class CategoryScrollItem : MonoBehaviour
+public class CategoryScrollItem : PooledObject
 {
     [SerializeField]
     private Button mButton;
     [SerializeField]
     private TMP_Text mText;
 
+    private bool mIsPrimaryCat;
+    private int mIndex;
+
     public void Init(int index, string text, bool isPrimaryCat)
     {
         gameObject.SetActive(true);
+
+        mButton.onClick.RemoveAllListeners();
 
         if (isPrimaryCat)
         {
@@ -22,6 +27,9 @@ public class CategoryScrollItem : MonoBehaviour
         {
             mButton.onClick.AddListener(() => MainScreen.Instance.OnSecondaryCatSelect(index));
         }
+
+        mIsPrimaryCat = isPrimaryCat;
+        mIndex = index;
 
         mText.text = text;
 

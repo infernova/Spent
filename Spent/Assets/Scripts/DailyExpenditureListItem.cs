@@ -1,9 +1,9 @@
 ﻿using TMPro;
 using UnityEngine.UI;
-using System.Collections.Generic;
+using StarstruckFramework;
 using UnityEngine;
 
-public class DailyExpenditureListItem : MonoBehaviour
+public class DailyExpenditureListItem : PooledObject
 {
     [SerializeField]
     private Button mButton;
@@ -21,10 +21,13 @@ public class DailyExpenditureListItem : MonoBehaviour
 
     private int mIndex;
 
+    private void Start()
+    {
+        mButton.onClick.AddListener(() => MainScreen.Instance.SelectExpenditure(mIndex));
+    }
+
     public void Init(ExpenditureItem item, int index)
     {
-        mButton.onClick.AddListener(() => MainScreen.Instance.SelectExpenditure(index));
-
         mAmount.text = "$" + item.Amount.ToString("0.00");
         if (mPrimaryCat != null) mPrimaryCat.text = item.PrimaryCategory; 
         if (mSecondaryCat != null) mSecondaryCat.text = item.SecondaryCategory;

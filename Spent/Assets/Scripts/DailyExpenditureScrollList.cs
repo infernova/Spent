@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System;
 using UnityEngine;
+using StarstruckFramework;
 
 public class DailyExpenditureScrollList : MonoBehaviour
 {
@@ -12,6 +13,9 @@ public class DailyExpenditureScrollList : MonoBehaviour
 
     [SerializeField]
     private GameObject mListItemTemplate;
+
+    [SerializeField]
+    private ObjectPoolType mListItemPoolType;
 
     [SerializeField]
     private float mTopBorder;
@@ -38,12 +42,16 @@ public class DailyExpenditureScrollList : MonoBehaviour
 
     private bool mIsInit;
 
+    private PoolMgr mPoolMgr;
+
     private void Start()
     {
         if (mIsInit) return;
 
         mViewportSize = GetComponent<RectTransform>().rect.height;
         mScrollRect.onValueChanged.AddListener(OnScrollValueChanged);
+
+        mPoolMgr = PoolMgr.Instance;
 
         mIsInit = true;
     }
@@ -61,7 +69,7 @@ public class DailyExpenditureScrollList : MonoBehaviour
 
         foreach(DailyExpenditureSetItem item in mCurrDisplay)
         {
-            Destroy(item.gameObject);
+            PoolMgr.Instance.DestroyObj(item.gameObject);
         }
 
         mCurrDisplay = new List<DailyExpenditureSetItem>();
@@ -76,7 +84,7 @@ public class DailyExpenditureScrollList : MonoBehaviour
 
         while (mLastIndex < items.Count && -mBottomPos < mViewportSize)
         {
-            GameObject setItem = Instantiate(mListItemTemplate, mContainerRect);
+            GameObject setItem = PoolMgr.Instance.InstantiateObj(mListItemPoolType, mContainerRect);
             float itemHeight = 0.0f;
             List<DailyExpenditureListItem> additionalItems = null;
             setItem.GetComponent<DailyExpenditureSetItem>().LoadExpenditures(items,
@@ -100,6 +108,7 @@ public class DailyExpenditureScrollList : MonoBehaviour
                 ref sizeIndex);
         }
 
+        mScrollRect.vertical = containerSize > GetComponent<RectTransform>().rect.height;
         mContainerRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, containerSize);
     }
 
@@ -111,7 +120,7 @@ public class DailyExpenditureScrollList : MonoBehaviour
 
         while (mLastIndex < mItems.Count && mBottomBorder < mBottomPos)
         {
-            GameObject setItem = Instantiate(mListItemTemplate, mContainerRect);
+            GameObject setItem = mPoolMgr.InstantiateObj(mListItemPoolType, mContainerRect);
             float itemHeight = 0.0f;
             List<DailyExpenditureListItem> additionalItems = null;
             setItem.GetComponent<DailyExpenditureSetItem>().LoadExpenditures(mItems,
@@ -126,12 +135,12 @@ public class DailyExpenditureScrollList : MonoBehaviour
             mCurrDisplay.Add(setItem.GetComponent<DailyExpenditureSetItem>());
         }
 
-        while (mLastIndex > 0 && mBottomBorder > mCurrDisplay[mCurrDisplay.Count - 1].TopPos)
+        while (mLastIndex > 0 && mCurrDisplay.Count > 0 && mBottomBorder > mCurrDisplay[mCurrDisplay.Count - 1].TopPos)
         {
             DailyExpenditureSetItem set = mCurrDisplay[mCurrDisplay.Count - 1];
             mLastIndex -= set.NumItems;
             mBottomPos += set.Size;
-            Destroy(set.gameObject);
+            mPoolMgr.DestroyObj(set.gameObject);
             mCurrDisplay.RemoveAt(mCurrDisplay.Count - 1);
 
             while (mItemList.Count > mLastIndex)
@@ -140,12 +149,12 @@ public class DailyExpenditureScrollList : MonoBehaviour
             }
         }
 
-        while (mFirstIndex < mItems.Count && mTopBorder < mCurrDisplay[0].BottomPos)
+        while (mFirstIndex < mItems.Count && mCurrDisplay.Count > 0 && mTopBorder < mCurrDisplay[0].BottomPos)
         {
             DailyExpenditureSetItem set = mCurrDisplay[0];
             mFirstIndex += set.NumItems;
             mTopPos -= set.Size;
-            Destroy(set.gameObject);
+            mPoolMgr.DestroyObj(set.gameObject);
             mCurrDisplay.RemoveAt(0);
         }
 
@@ -161,7 +170,7 @@ public class DailyExpenditureScrollList : MonoBehaviour
 
             mFirstIndex = prevIndex;
 
-            GameObject setItem = Instantiate(mListItemTemplate, mContainerRect);
+            GameObject setItem = mPoolMgr.InstantiateObj(mListItemPoolType, mContainerRect);
             float itemHeight = 0.0f;
             List<DailyExpenditureListItem> additionalItems = null;
             setItem.GetComponent<DailyExpenditureSetItem>().LoadExpenditures(mItems,

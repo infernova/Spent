@@ -1,9 +1,10 @@
 ﻿using TMPro;
 using System;
+using StarstruckFramework;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class DailyExpenditureSetItem : MonoBehaviour
+public class DailyExpenditureSetItem : PooledObject
 {
     [SerializeField]
     private TextMeshProUGUI mDateTitle;
@@ -12,6 +13,11 @@ public class DailyExpenditureSetItem : MonoBehaviour
 
     [SerializeField]
     private GameObject mItemTemplate;
+
+    [SerializeField]
+    private ObjectPoolType mItemPoolType;
+
+    private List<GameObject> mListItems = new List<GameObject>();
 
     public float TopPos { get; private set; }
     public float BottomPos
@@ -25,9 +31,25 @@ public class DailyExpenditureSetItem : MonoBehaviour
 
     private bool mIsInit;
 
+    private PoolMgr mPoolMgr;
+
+    public override void Reinit()
+    {
+        base.Reinit();
+
+        foreach(GameObject item in mListItems)
+        {
+            mPoolMgr.DestroyObj(item);
+        }
+
+        mListItems.Clear();
+    }
+
     private void Start()
     {
         if (mIsInit) return;
+
+        mPoolMgr = PoolMgr.Instance;
 
         mTitleContainerSize = mDateTitleContainer.rect.height;
         mIsInit = true;
@@ -78,12 +100,24 @@ public class DailyExpenditureSetItem : MonoBehaviour
         mDateTitle.SetText(selectedDate.ToString("dddd, d MMM yyyy"));
 
         items = new List<DailyExpenditureListItem>();
-   
-        while (index + NumItems < list.Count && list[index + NumItems].Date.DateTime.Date == selectedDate.Date)
+
+        foreach (GameObject item in mListItems)
         {
-            GameObject item = Instantiate(mItemTemplate, transform);
+            mPoolMgr.DestroyObj(item);
+        }
+
+        mListItems.Clear();
+
+        while (list.Count > 0 
+            && index + NumItems < list.Count 
+            && list[index + NumItems].Date.DateTime.Date == selectedDate.Date)
+        {
+            GameObject item = mPoolMgr.InstantiateObj(mItemPoolType, transform);
+
             item.GetComponent<RectTransform>().anchoredPosition = new Vector2(0.0f, -mTitleContainerSize - (itemHeight * NumItems));
             item.GetComponent<DailyExpenditureListItem>().Init(list[index + NumItems], index + NumItems);
+
+            mListItems.Add(item);
 
             items.Add(item.GetComponent<DailyExpenditureListItem>());
             NumItems++;

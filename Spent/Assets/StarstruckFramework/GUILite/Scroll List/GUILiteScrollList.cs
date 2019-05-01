@@ -12,25 +12,9 @@ namespace StarstruckFramework
 		private RectTransform mContainerRect;
 
         [SerializeField]
+        private ObjectPoolType mListItemTemplatePoolType;
+        [SerializeField]
         private GameObject mListItemTemplate;
-        public GameObject ListItemTemplate
-        {
-            get { return mListItemTemplate; }
-            set
-            {
-                if (mListItemTemplate != value)
-                {
-                    mListItemTemplate = value;
-
-                    for (int i = mItemList.Count - 1; i >= 0; i--)
-                    {
-                        Destroy(mItemList[i].gameObject);
-                    }
-
-                    mItemList = new List<GUILiteScrollListItem>();
-                }
-            }
-        }
 		[SerializeField]
 		private float mSpacing;
 		[SerializeField]
@@ -68,7 +52,7 @@ namespace StarstruckFramework
 
 			if (mAxis == RectTransform.Axis.Vertical)
 			{
-				mTemplateSize = ListItemTemplate.GetComponent<RectTransform>().rect.height;
+				mTemplateSize = mListItemTemplate.GetComponent<RectTransform>().rect.height;
 				viewportSize = mScrollRect.GetComponent<RectTransform>().rect.height;
 
 				mContainerRect.anchorMin = new Vector2(0.0f, 1.0f);
@@ -80,7 +64,7 @@ namespace StarstruckFramework
 			}
 			else if (mAxis == RectTransform.Axis.Horizontal)
 			{
-				mTemplateSize = ListItemTemplate.GetComponent<RectTransform>().rect.width;
+				mTemplateSize = mListItemTemplate.GetComponent<RectTransform>().rect.width;
 				viewportSize = mScrollRect.GetComponent<RectTransform>().rect.width;
 
 				mContainerRect.anchorMin = new Vector2(0.0f, 0.0f);
@@ -115,7 +99,7 @@ namespace StarstruckFramework
 			{
 				for (int i = mItemList.Count - 1; i >= mMaxItems; i--)
 				{
-					Destroy(mItemList[i].gameObject);
+					PoolMgr.Instance.DestroyObj(mItemList[i].gameObject);
 					mItemList.RemoveAt(i);
 				}
 			}
@@ -125,13 +109,14 @@ namespace StarstruckFramework
 
 		protected virtual void InitItems(int numVisible)
 		{
+            PoolMgr poolMgr = PoolMgr.Instance;
 			for (int i = 0; i < numVisible; i++)
 			{
 				GameObject gob = null;
 
 				if (i >= mItemList.Count)
 				{
-					gob = Instantiate(ListItemTemplate, mContainerRect);
+					gob = poolMgr.InstantiateObj(mListItemTemplatePoolType, mContainerRect);
 					mItemList.Add(gob.GetComponent<GUILiteScrollListItem>());
 				}
 				else

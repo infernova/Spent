@@ -1,7 +1,8 @@
 ﻿using UnityEngine.UI;
 using UnityEngine;
+using StarstruckFramework;
 
-public class PieChartItem : MonoBehaviour
+public class PieChartItem : PooledObject
 {
     [SerializeField]
     private Image[] mPieSlices;
@@ -12,11 +13,11 @@ public class PieChartItem : MonoBehaviour
         {
             if (percent > 0.25f * (i + 1))
             {
-                mPieSlices[0].fillAmount = 1.0f;
+                mPieSlices[i].fillAmount = 1.0f;
             }
             else
             {
-                mPieSlices[0].fillAmount = percent - (0.25f * i);
+                mPieSlices[i].fillAmount = (percent - (0.25f * i)) * 4.0f;
             }
         }
     }

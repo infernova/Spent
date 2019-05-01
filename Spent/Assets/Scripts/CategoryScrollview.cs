@@ -1,18 +1,23 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using StarstruckFramework;
 
 public class CategoryScrollview : MonoBehaviour
 {
     [SerializeField]
     private GameObject Template;
+    [SerializeField]
+    private ObjectPoolType TemplatePoolType;
     private List<GameObject> mOptions = new List<GameObject>();
 
     public void UpdateOptions(List<string> options, bool isPrimaryCat)
     {
+        PoolMgr poolMgr = PoolMgr.Instance;
+
         foreach(GameObject gob in mOptions)
         {
-            Destroy(gob);
+            poolMgr.DestroyObj(gob);
         }
 
         mOptions = new List<GameObject>();
@@ -22,7 +27,16 @@ public class CategoryScrollview : MonoBehaviour
 
         for (int i = 0; i < options.Count; i++)
         {
-            GameObject item = Instantiate(Template, GetComponent<ScrollRect>().content);
+            GameObject item = poolMgr.InstantiateObj(TemplatePoolType, GetComponent<ScrollRect>().content);
+            RectTransform itemRectTrans = item.GetComponent<RectTransform>();
+            Vector2 min = itemRectTrans.offsetMin;
+            min.x = 2.0f;
+            itemRectTrans.offsetMin = min;
+
+            Vector2 max = itemRectTrans.offsetMax;
+            max.x = 2.0f;
+            itemRectTrans.offsetMax = max;
+
             item.GetComponent<CategoryScrollItem>().Init(i, options[i], isPrimaryCat);
 
             mOptions.Add(item);

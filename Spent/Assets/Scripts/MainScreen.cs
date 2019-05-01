@@ -4,7 +4,6 @@ using UnityEngine.UI;
 using StarstruckFramework;
 using System;
 using System.Collections.Generic;
-using UnityEngine.Experimental.Input;
 
 public class MainScreen : SingletonBehavior<MainScreen>
 {
@@ -17,14 +16,6 @@ public class MainScreen : SingletonBehavior<MainScreen>
     private Button mExpenditureListScreenButton;
     [SerializeField]
     private Button mCostBreakdownScreenButton;
-
-    [Header("List Template")]
-    [SerializeField]
-    private GameObject ExpenditureListTemplate;
-    [SerializeField]
-    private GameObject CostBreakdownListTemplate;
-    [SerializeField]
-    private GameObject CategoryExpenditureListTemplate;
 
     private bool mIsCostBreakdownExpenseList
     {
@@ -48,6 +39,13 @@ public class MainScreen : SingletonBehavior<MainScreen>
     }
 
     #region Item Edit
+    public void ResetEditIndices()
+    {
+        EditIndex = NULL_INDEX;
+        CostBreakdownIndex = NULL_INDEX;
+        RecurringEditIndex = NULL_INDEX;
+    }
+
     public void SelectExpenditure(int index)
     {
         if (mExpenditureListContainer.gameObject.activeSelf)
@@ -83,8 +81,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
     public void CancelEdit()
     {
-        EditIndex = NULL_INDEX;
-        CostBreakdownIndex = NULL_INDEX;
+        ResetEditIndices();
 
         LoadBlankExpenditure();
 
@@ -129,8 +126,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
         Expenditures.RefreshDisplayedList();
 
-        EditIndex = NULL_INDEX;
-        CostBreakdownIndex = NULL_INDEX;
+        ResetEditIndices();
 
         if (Expenditures.EditCount > mBackup.EditCount)
         {
@@ -197,8 +193,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
             LoadCostBreakdown(mSelectedCostBreakdownCat);
         }
 
-        EditIndex = NULL_INDEX;
-        CostBreakdownIndex = NULL_INDEX;
+        ResetEditIndices();
     }
     #endregion
 
@@ -232,7 +227,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
         if (mExpenditureListContainer.activeSelf)
         {
-            mExpenditureList.Init(Expenditures.DateRangeItems);
+            LoadExpenditureList();
         }
         else if (mCostBreakdownContainer.activeSelf)
         {
@@ -246,8 +241,12 @@ public class MainScreen : SingletonBehavior<MainScreen>
     private DateTime pauseTime;
     private bool mIsInit;
 
+    private PoolMgr mPoolMgr;
+
     private void Awake()
     {
+        mPoolMgr = PoolMgr.Instance;
+
         SetDisplayState(DisplayState.ADD);
 
         Expenditures = ScriptableObject.CreateInstance<ExpenditureStats>();
@@ -315,18 +314,6 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
 	private void Update()
     {
-        if (Application.platform == RuntimePlatform.Android)
-        {
-            Touchscreen ts = Touchscreen.current;
-            string log = "Touch phases: ";
-            foreach (UnityEngine.Experimental.Input.Controls.TouchControl control in ts.allTouchControls)
-            {
-                log += control.ReadValue().phase;
-                log += ", ";
-            }
-            Debug.Log(log);
-        }
-
         if (mAddExpenditureContainer.activeSelf)
         {
             if (EditIndex == NULL_INDEX
@@ -932,6 +919,8 @@ public class MainScreen : SingletonBehavior<MainScreen>
     [SerializeField]
     private GameObject mEditExpenditureButtonContainer;
     [SerializeField]
+    private GameObject mExpenditureListNilText;
+    [SerializeField]
     private DailyExpenditureScrollList mExpenditureList;
     [SerializeField]
     private Button mEditExpenditureButton;
@@ -969,12 +958,11 @@ public class MainScreen : SingletonBehavior<MainScreen>
     {
         mSelectedCostBreakdownCat = string.Empty;
 
-        EditIndex = NULL_INDEX;
-        CostBreakdownIndex = NULL_INDEX;
-        RecurringEditIndex = NULL_INDEX;
+        ResetEditIndices();
 
         mExpenditureListContainer.SetActive(true);
         mExpenditureList.Init(Expenditures.DateRangeItems);
+        mExpenditureListNilText.SetActive(Expenditures.DateRangeItems.Count == 0);
     }
 
     public void SelectExpenditureListItem(int index)
@@ -987,6 +975,8 @@ public class MainScreen : SingletonBehavior<MainScreen>
     [Header("Cost Breakdown")]
     [SerializeField]
     private GameObject mCostBreakdownContainer;
+    [SerializeField]
+    private GameObject mCostBreakdownNilText;
     [SerializeField]
     private TextMeshProUGUI mCostBreakdownTitle;
     [SerializeField]
@@ -1015,8 +1005,6 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
     [SerializeField]
     private GameObject mCostBreakdownPieChartContainer;
-    [SerializeField]
-    private GameObject mCostBreakdownPieChartTemplate;
     [SerializeField]
     private GameObject mCostBreakdownPieChartButton;
     private List<GameObject> mCostBreakdownPieChartInstances = new List<GameObject>();
@@ -1085,14 +1073,19 @@ public class MainScreen : SingletonBehavior<MainScreen>
         LoadCostBreakdown(s, false);
     }
 
+    private HSBColor GetRandomHSBColour()
+    {
+        return new HSBColor(UnityEngine.Random.Range(0.0f, 1.0f),
+                            UnityEngine.Random.Range(0.2f, 0.5f),
+                            UnityEngine.Random.Range(0.75f, 1.0f));
+    }
+
     public void LoadCostBreakdown(string s, bool overrideInput)
     {
         mCostBreakdownList.gameObject.SetActive(true);
         mCostBreakdownDailyExpenditureList.gameObject.SetActive(false);
 
-        EditIndex = NULL_INDEX;
-        CostBreakdownIndex = NULL_INDEX;
-        RecurringEditIndex = NULL_INDEX;
+        ResetEditIndices();
 
         mCostBreakdownContainer.SetActive(true);
 
@@ -1106,6 +1099,15 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
         mCostBreakdownEditButton.SetActive(false);
         mCostBreakdownRemoveButton.SetActive(false);
+
+        DateTime latestDate = Expenditures.Items[0].Date;
+        bool needCurrMonthEntry = false;
+
+        if (latestDate.Year < DateTime.Now.Year 
+            || (latestDate.Year == DateTime.Now.Year && latestDate.Month < DateTime.Now.Month))
+        {
+            needCurrMonthEntry = true;
+        }
 
         if (string.IsNullOrEmpty(s))
         {
@@ -1260,6 +1262,11 @@ public class MainScreen : SingletonBehavior<MainScreen>
             }
         }
 
+        if (needCurrMonthEntry)
+        {
+            monthlyAmounts.Add(0.0f);
+        }
+
         float lineInterval = 0.0f;
 
         if (mSelectedCostBreakdownCat.Contains("\t"))
@@ -1315,9 +1322,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
                     int loopCount = 0;
                     do
                     {
-                        newHSBColour = new HSBColor(UnityEngine.Random.Range(0.0f, 1.0f),
-                            UnityEngine.Random.Range(0.2f, 0.5f),
-                            UnityEngine.Random.Range(0.75f, 1.0f));
+                        newHSBColour = GetRandomHSBColour();
                         newColour = newHSBColour.ToColor();
                         loopCount++;
                     } while (loopCount < 100
@@ -1332,9 +1337,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
                     Color firstColor = CostBreakdownItemColours[0];
                     do
                     {
-                        newHSBColour = new HSBColor(UnityEngine.Random.Range(0.0f, 1.0f),
-                            UnityEngine.Random.Range(0.2f, 0.5f),
-                            UnityEngine.Random.Range(0.75f, 1.0f));
+                        newHSBColour = GetRandomHSBColour();
                         newColour = newHSBColour.ToColor();
                         loopCount++;
                     } while (loopCount < 100
@@ -1355,24 +1358,41 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
             foreach(GameObject pie in mCostBreakdownPieChartInstances)
             {
-                Destroy(pie);
+                mPoolMgr.DestroyObj(pie);
             }
 
             float percent = 1.0f;
 
-            for (int i = CostBreakdownItems.Count - 1; i >= 0; i--)
+            if (CostBreakdownItems.Count == 0)
             {
-                GameObject pieSlice = Instantiate(mCostBreakdownPieChartTemplate,
-                    mCostBreakdownPieChartContainer.transform);
+                CostBreakdownItemColours.Add(GetRandomHSBColour().ToColor());
+
+                GameObject pieSlice = mPoolMgr.InstantiateObj(ObjectPoolType.PIE_SLICE,
+                        mCostBreakdownPieChartContainer.transform);
                 pieSlice.SetActive(true);
-                pieSlice.GetComponent<PieChartItem>().SetColour(CostBreakdownItemColours[i]);
-
+                pieSlice.GetComponent<PieChartItem>().SetColour(CostBreakdownItemColours[0]);
                 pieSlice.GetComponent<PieChartItem>().SetPercentage(percent);
-
-                percent -= CostBreakdownItems[i].Percentage * 0.01f;
 
                 mCostBreakdownPieChartInstances.Add(pieSlice);
             }
+            else
+            {
+                for (int i = CostBreakdownItems.Count - 1; i >= 0; i--)
+                {
+                    GameObject pieSlice = mPoolMgr.InstantiateObj(ObjectPoolType.PIE_SLICE,
+                        mCostBreakdownPieChartContainer.transform);
+                    pieSlice.SetActive(true);
+                    pieSlice.GetComponent<PieChartItem>().SetColour(CostBreakdownItemColours[i]);
+
+                    pieSlice.GetComponent<PieChartItem>().SetPercentage(percent);
+
+                    percent -= CostBreakdownItems[i].Percentage * 0.01f;
+
+                    mCostBreakdownPieChartInstances.Add(pieSlice);
+                }
+            }
+
+            mCostBreakdownNilText.SetActive(CostBreakdownItems.Count == 0);
 
             lineInterval = 67.5f;
 
@@ -1390,7 +1410,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
         foreach (GameObject bar in mCostBreakdownBarChartInstances)
         {
-            Destroy(bar);
+            mPoolMgr.DestroyObj(bar);
         }
 
         float barInteval = 0.0f;
@@ -1459,7 +1479,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
         for (int i = 0; i < monthlyAmounts.Count; i++)
         {
-            GameObject bar = Instantiate(mCostBreakdownBarChartScrollViewTemplate,
+            GameObject bar = mPoolMgr.InstantiateObj(ObjectPoolType.BAR_CHART_ITEM,
                 mCostBreakdownBarChartScrollViewContent);
 
             bar.SetActive(true);
@@ -1612,9 +1632,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
     {
         mSelectedCostBreakdownCat = string.Empty;
 
-        EditIndex = NULL_INDEX;
-        CostBreakdownIndex = NULL_INDEX;
-        RecurringEditIndex = NULL_INDEX;
+        ResetEditIndices();
 
         mRecurringExpenditureListContainer.SetActive(true);
         mRecurringExpenditureList.Init(RecurringExpense.RecurringItemList.Count);
@@ -1646,7 +1664,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
     public void CancelRecurringEdit()
     {
-        RecurringEditIndex = NULL_INDEX;
+        ResetEditIndices();
 
         LoadBlankExpenditure();
 
@@ -1672,7 +1690,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
         PlayerPrefs.SetString(RecurringString, JsonUtility.ToJson(RecurringExpense));
 
-        RecurringEditIndex = NULL_INDEX;
+        ResetEditIndices();
 
         LoadBlankExpenditure();
 

@@ -17,10 +17,13 @@ public class CategoryDailyListItem : MonoBehaviour
 
     private int mIndex;
 
+    private void Start()
+    {
+        mButton.onClick.AddListener(() => MainScreen.Instance.SelectExpenditureListItem(mIndex));
+    }
+
     public void Init(ExpenditureItem item, int index)
     {
-        mButton.onClick.AddListener(() => MainScreen.Instance.SelectExpenditureListItem(index));
-
         mAmount.text = "$" + item.Amount.ToString("0.00");
         if (string.IsNullOrEmpty(item.Description))
         {

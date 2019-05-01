@@ -2,8 +2,9 @@
 using System;
 using UnityEngine;
 using UnityEngine.UI;
+using StarstruckFramework;
 
-public class CostBreakdownBarItem : MonoBehaviour
+public class CostBreakdownBarItem : PooledObject
 {
     [SerializeField]
     private TextMeshProUGUI mDate;
