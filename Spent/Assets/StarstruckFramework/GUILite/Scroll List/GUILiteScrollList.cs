@@ -13,8 +13,6 @@ namespace StarstruckFramework
 
         [SerializeField]
         private ObjectPoolType mListItemTemplatePoolType;
-        [SerializeField]
-        private GameObject mListItemTemplate;
 		[SerializeField]
 		private float mSpacing;
 		[SerializeField]
@@ -52,7 +50,7 @@ namespace StarstruckFramework
 
 			if (mAxis == RectTransform.Axis.Vertical)
 			{
-				mTemplateSize = mListItemTemplate.GetComponent<RectTransform>().rect.height;
+                mTemplateSize = PoolMgr.Instance.GetPooledObjRef(mListItemTemplatePoolType).GetComponent<RectTransform>().rect.height;
 				viewportSize = mScrollRect.GetComponent<RectTransform>().rect.height;
 
 				mContainerRect.anchorMin = new Vector2(0.0f, 1.0f);
@@ -64,7 +62,7 @@ namespace StarstruckFramework
 			}
 			else if (mAxis == RectTransform.Axis.Horizontal)
 			{
-				mTemplateSize = mListItemTemplate.GetComponent<RectTransform>().rect.width;
+                mTemplateSize = PoolMgr.Instance.GetPooledObjRef(mListItemTemplatePoolType).GetComponent<RectTransform>().rect.width;
 				viewportSize = mScrollRect.GetComponent<RectTransform>().rect.width;
 
 				mContainerRect.anchorMin = new Vector2(0.0f, 0.0f);
@@ -83,7 +81,14 @@ namespace StarstruckFramework
 			numVisible = (int)System.Math.Ceiling((viewportSize - (mSpacing * 2.0f)) / (mTemplateSize + mSpacing)) + 1;
 			numVisible = System.Math.Min(mMaxItems, numVisible);
 
-			mScrollRect.enabled = viewportSize < ((mTemplateSize + mSpacing) * numItems) + mSpacing;
+            if (viewportSize < ((mTemplateSize + mSpacing) * numItems) + mSpacing)
+            {
+                mScrollRect.movementType = ScrollRect.MovementType.Elastic;
+            }
+            else
+            {
+                mScrollRect.movementType = ScrollRect.MovementType.Clamped;
+            }
 
 			mCurrMinIndex = 0;
 			mCurrMaxIndex = numVisible - 1;

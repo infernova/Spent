@@ -12,9 +12,6 @@ public class DailyExpenditureScrollList : MonoBehaviour
     private RectTransform mContainerRect;
 
     [SerializeField]
-    private GameObject mListItemTemplate;
-
-    [SerializeField]
     private ObjectPoolType mListItemPoolType;
 
     [SerializeField]
@@ -104,11 +101,19 @@ public class DailyExpenditureScrollList : MonoBehaviour
         
         while (sizeIndex < items.Count)
         {
-            containerSize += mListItemTemplate.GetComponent<DailyExpenditureSetItem>().GetSize(items,
+            containerSize += mPoolMgr.GetPooledObjRef(mListItemPoolType).GetComponent<DailyExpenditureSetItem>().GetSize(items,
                 ref sizeIndex);
         }
 
-        mScrollRect.vertical = containerSize > GetComponent<RectTransform>().rect.height;
+        if (containerSize > GetComponent<RectTransform>().rect.height)
+        {
+            mScrollRect.movementType = ScrollRect.MovementType.Elastic;
+        }
+        else
+        {
+            mScrollRect.movementType = ScrollRect.MovementType.Clamped;
+        }
+
         mContainerRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, containerSize);
     }
 

@@ -6,8 +6,6 @@ using StarstruckFramework;
 public class CategoryScrollview : MonoBehaviour
 {
     [SerializeField]
-    private GameObject Template;
-    [SerializeField]
     private ObjectPoolType TemplatePoolType;
     private List<GameObject> mOptions = new List<GameObject>();
 
@@ -23,7 +21,7 @@ public class CategoryScrollview : MonoBehaviour
         mOptions = new List<GameObject>();
 
         GetComponent<ScrollRect>().content.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,
-            Template.GetComponent<RectTransform>().rect.height * options.Count);
+                                                                     poolMgr.GetPooledObjRef(TemplatePoolType).GetComponent<RectTransform>().rect.height * options.Count);
 
         for (int i = 0; i < options.Count; i++)
         {

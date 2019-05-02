@@ -20,6 +20,9 @@ public class DailyExpenditureListItem : PooledObject
     private Image mBackground;
 
     private int mIndex;
+    private GameObject mDescriptionItem;
+
+    private ExpenditureItem mRefItem;
 
     private void Start()
     {
@@ -28,6 +31,8 @@ public class DailyExpenditureListItem : PooledObject
 
     public void Init(ExpenditureItem item, int index)
     {
+        mRefItem = item;
+
         mAmount.text = "$" + item.Amount.ToString("0.00");
         if (mPrimaryCat != null) mPrimaryCat.text = item.PrimaryCategory; 
         if (mSecondaryCat != null) mSecondaryCat.text = item.SecondaryCategory;
@@ -64,6 +69,17 @@ public class DailyExpenditureListItem : PooledObject
         else
         {
             mBackground.color = new Color(0.5f, 0.5f, 0.5f, 0.0f);
+        }
+
+        if (isSelected && mDescriptionItem == null)
+        {
+            mDescriptionItem = PoolMgr.Instance.InstantiateObj(ObjectPoolType.DESCRIPTION_ITEM, transform.parent);
+            mDescriptionItem.transform.SetAsFirstSibling();
+            mDescriptionItem.GetComponent<ExpenditureDescriptionItem>().Init(gameObject, mRefItem);
+        }
+        else if (!isSelected && mDescriptionItem != null)
+        {
+            PoolMgr.Instance.DestroyObj(mDescriptionItem);
         }
     }
 }

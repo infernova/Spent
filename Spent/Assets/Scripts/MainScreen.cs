@@ -1025,8 +1025,6 @@ public class MainScreen : SingletonBehavior<MainScreen>
     private RectTransform mCostBreakdownBarChartScrollViewContent;
     [SerializeField]
     private GameObject mCostBreakdownBarChartScrollBar;
-    [SerializeField]
-    private GameObject mCostBreakdownBarChartScrollViewTemplate;
     private List<GameObject> mCostBreakdownBarChartInstances = new List<GameObject>();
     private float mCostBreakdownBarChartWidth;
     private int mCostBreakdownNumMonths;
@@ -1474,7 +1472,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
         mCostBreakdownBarChartLeftAxis.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,
             (lineInterval * 5.0f) + 37.5f);
 
-        mCostBreakdownBarChartScrollViewTemplate
+        mPoolMgr.GetPooledObjRef(ObjectPoolType.BAR_CHART_ITEM)
             .GetComponent<CostBreakdownBarItem>().MaxBarHeight = lineInterval * 5.0f;
 
         for (int i = 0; i < monthlyAmounts.Count; i++)

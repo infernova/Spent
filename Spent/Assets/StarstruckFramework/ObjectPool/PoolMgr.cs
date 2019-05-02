@@ -15,7 +15,8 @@ namespace StarstruckFramework
         RECURRING_ITEM,
         COST_BREAKDOWN_ITEM,
         BAR_CHART_ITEM,
-        CATEGORY_INPUT_ITEM
+        CATEGORY_INPUT_ITEM,
+        DESCRIPTION_ITEM
     }
 
 	public class PoolMgr : SingletonBehavior<PoolMgr>
@@ -47,6 +48,11 @@ namespace StarstruckFramework
 				mIndividualPoolContainers.Add(pool);
 			}
 		}
+
+        public GameObject GetPooledObjRef(ObjectPoolType type)
+        {
+            return PooledObjectTemplates[type];
+        }
 
 		public GameObject InstantiateObj(ObjectPoolType type, Vector3 pos, Transform parent, bool useWorldPos = false)
 		{

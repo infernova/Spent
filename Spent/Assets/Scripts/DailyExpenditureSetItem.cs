@@ -12,9 +12,6 @@ public class DailyExpenditureSetItem : PooledObject
     private RectTransform mDateTitleContainer;
 
     [SerializeField]
-    private GameObject mItemTemplate;
-
-    [SerializeField]
     private ObjectPoolType mItemPoolType;
 
     private List<GameObject> mListItems = new List<GameObject>();
@@ -62,8 +59,13 @@ public class DailyExpenditureSetItem : PooledObject
             return 0.0f;
         }
 
+        if (!mIsInit)
+        {
+            Start();
+        }
+
         DateTime selectedDate = list[index].Date;
-        float itemHeight = mItemTemplate.GetComponent<RectTransform>().rect.height;
+        float itemHeight = mPoolMgr.GetPooledObjRef(mItemPoolType).GetComponent<RectTransform>().rect.height;
         int itemCount = 0;
 
         while (index + itemCount < list.Count && list[index + itemCount].Date.DateTime.Date == selectedDate.Date)
@@ -95,7 +97,7 @@ public class DailyExpenditureSetItem : PooledObject
         }
 
         DateTime selectedDate = list[index].Date;
-        float itemHeight = mItemTemplate.GetComponent<RectTransform>().rect.height;
+        float itemHeight = mPoolMgr.GetPooledObjRef(mItemPoolType).GetComponent<RectTransform>().rect.height;
         NumItems = 0;
         mDateTitle.SetText(selectedDate.ToString("dddd, d MMM yyyy"));
 
