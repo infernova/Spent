@@ -20,17 +20,39 @@ public class DailyExpenditureListItem : PooledObject
     private Image mBackground;
 
     private int mIndex;
-    private GameObject mDescriptionItem;
+    public GameObject mDescriptionItem;
 
     private ExpenditureItem mRefItem;
+    private DailyExpenditureSetItem mParent;
+
+    private float mItemHeight;
+    public float ItemHeight
+    {
+        get { return mItemHeight; }
+    }
+
+    public float mOffset;
+    public float Offset
+    {
+        get { return mOffset; }
+        set
+        {
+            mOffset = value;
+            mParent.RepositionItems();
+        }
+    }
 
     private void Start()
     {
         mButton.onClick.AddListener(() => MainScreen.Instance.SelectExpenditure(mIndex));
+        mItemHeight = GetComponent<RectTransform>().rect.height;
+        Offset = 0.0f;
     }
 
-    public void Init(ExpenditureItem item, int index)
+    public void Init(DailyExpenditureSetItem parent, ExpenditureItem item, int index)
     {
+        mParent = parent;
+
         mRefItem = item;
 
         mAmount.text = "$" + item.Amount.ToString("0.00");
@@ -71,15 +93,15 @@ public class DailyExpenditureListItem : PooledObject
             mBackground.color = new Color(0.5f, 0.5f, 0.5f, 0.0f);
         }
 
-        if (isSelected && mDescriptionItem == null)
+        if (mDesc == null && isSelected && mDescriptionItem == null)
         {
             mDescriptionItem = PoolMgr.Instance.InstantiateObj(ObjectPoolType.DESCRIPTION_ITEM, transform.parent);
             mDescriptionItem.transform.SetAsFirstSibling();
             mDescriptionItem.GetComponent<ExpenditureDescriptionItem>().Init(gameObject, mRefItem);
         }
-        else if (!isSelected && mDescriptionItem != null)
+        else if (mDesc == null && !isSelected && mDescriptionItem != null)
         {
-            PoolMgr.Instance.DestroyObj(mDescriptionItem);
+            mDescriptionItem.GetComponent<ExpenditureDescriptionItem>().StartScrollOut();
         }
     }
 }

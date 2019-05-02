@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System;
 using UnityEngine;
 using StarstruckFramework;
+using UnityEngine.EventSystems;
 
-public class DailyExpenditureScrollList : MonoBehaviour
+public class DailyExpenditureScrollList : MonoBehaviour, IEndDragHandler, IBeginDragHandler
 {
     [SerializeField]
     private ScrollRect mScrollRect;
@@ -35,7 +36,16 @@ public class DailyExpenditureScrollList : MonoBehaviour
     private float mTopPos;
     private float mBottomPos;
 
+    private float mContainerSize;
+
     private List<ExpenditureItem> mItems;
+    private List<GameObject> mSetItems;
+
+    private float mCurrTotalOffset;
+
+    private bool mIsDragging;
+    private float mDragOffset;
+    private bool mWasPositionUpdated;
 
     private bool mIsInit;
 
@@ -53,6 +63,33 @@ public class DailyExpenditureScrollList : MonoBehaviour
         mIsInit = true;
     }
 
+    public void RepositionItems()
+    {
+        float currPosition = mSetItems[0].GetComponent<RectTransform>().anchoredPosition.y;
+        mCurrTotalOffset = 0.0f;
+        foreach (DailyExpenditureSetItem setItem in mCurrDisplay)
+        {
+            RectTransform setTrans = setItem.GetComponent<RectTransform>();
+            setTrans.anchoredPosition = new Vector2(0.0f, currPosition);
+            currPosition -= setTrans.rect.height;
+
+            setItem.PreviousOffset = mCurrTotalOffset;
+
+            mCurrTotalOffset += setItem.Offset;
+        }
+
+        if (mContainerSize + mCurrTotalOffset > GetComponent<RectTransform>().rect.height)
+        {
+            mScrollRect.movementType = ScrollRect.MovementType.Elastic;
+        }
+        else
+        {
+            mScrollRect.movementType = ScrollRect.MovementType.Clamped;
+        }
+
+        mContainerRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, mContainerSize + mCurrTotalOffset);
+    }
+
     public void Init (List<ExpenditureItem> items)
     {
         if (!mIsInit)
@@ -64,7 +101,9 @@ public class DailyExpenditureScrollList : MonoBehaviour
 
         mItemList = new List<DailyExpenditureListItem>();
 
-        foreach(DailyExpenditureSetItem item in mCurrDisplay)
+        mSetItems = new List<GameObject>();
+
+        foreach (DailyExpenditureSetItem item in mCurrDisplay)
         {
             PoolMgr.Instance.DestroyObj(item.gameObject);
         }
@@ -79,6 +118,8 @@ public class DailyExpenditureScrollList : MonoBehaviour
         mLastIndex = 0;
         mBottomPos = 0.0f;
 
+        mContainerSize = 0.0f;
+
         while (mLastIndex < items.Count && -mBottomPos < mViewportSize)
         {
             GameObject setItem = PoolMgr.Instance.InstantiateObj(mListItemPoolType, mContainerRect);
@@ -86,6 +127,7 @@ public class DailyExpenditureScrollList : MonoBehaviour
             List<DailyExpenditureListItem> additionalItems = null;
             setItem.GetComponent<DailyExpenditureSetItem>().LoadExpenditures(items,
                 mBottomPos,
+                this,
                 ref mLastIndex,
                 out itemHeight,
                 out additionalItems);
@@ -94,18 +136,18 @@ public class DailyExpenditureScrollList : MonoBehaviour
             mBottomPos -= itemHeight;
 
             mCurrDisplay.Add(setItem.GetComponent<DailyExpenditureSetItem>());
+            mSetItems.Add(setItem);
         }
 
         int sizeIndex = 0;
-        float containerSize = 0.0f;
         
         while (sizeIndex < items.Count)
         {
-            containerSize += mPoolMgr.GetPooledObjRef(mListItemPoolType).GetComponent<DailyExpenditureSetItem>().GetSize(items,
+            mContainerSize += mPoolMgr.GetPooledObjRef(mListItemPoolType).GetComponent<DailyExpenditureSetItem>().GetSize(items,
                 ref sizeIndex);
         }
 
-        if (containerSize > GetComponent<RectTransform>().rect.height)
+        if (mContainerSize > GetComponent<RectTransform>().rect.height)
         {
             mScrollRect.movementType = ScrollRect.MovementType.Elastic;
         }
@@ -114,22 +156,41 @@ public class DailyExpenditureScrollList : MonoBehaviour
             mScrollRect.movementType = ScrollRect.MovementType.Clamped;
         }
 
-        mContainerRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, containerSize);
+        mContainerRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, mContainerSize);
     }
 
     public void OnScrollValueChanged(Vector2 pos)
     {
+        if (mIsDragging)
+        {
+            if (!mWasPositionUpdated)
+            {
+                pos.y += mDragOffset;
+                mScrollRect.verticalNormalizedPosition = pos.y;
+            }
+            else
+            {
+                mWasPositionUpdated = false;
+            }
+        }
+
         float containerPos = mContainerRect.anchoredPosition.y;
         mTopBorder = -containerPos;
         mBottomBorder = -containerPos - mViewportSize;
 
-        while (mLastIndex < mItems.Count && mBottomBorder < mBottomPos)
+        foreach (DailyExpenditureSetItem set in mCurrDisplay)
+        {
+            set.DoUpdate(mTopBorder);
+        }
+
+        while (mLastIndex < mItems.Count && mBottomBorder < mBottomPos - mCurrTotalOffset)
         {
             GameObject setItem = mPoolMgr.InstantiateObj(mListItemPoolType, mContainerRect);
             float itemHeight = 0.0f;
             List<DailyExpenditureListItem> additionalItems = null;
             setItem.GetComponent<DailyExpenditureSetItem>().LoadExpenditures(mItems,
-                mBottomPos,
+                mBottomPos - mCurrTotalOffset,
+                this,
                 ref mLastIndex,
                 out itemHeight,
                 out additionalItems);
@@ -138,15 +199,24 @@ public class DailyExpenditureScrollList : MonoBehaviour
             mBottomPos -= itemHeight;
 
             mCurrDisplay.Add(setItem.GetComponent<DailyExpenditureSetItem>());
+            mSetItems.Add(setItem);
         }
 
         while (mLastIndex > 0 && mCurrDisplay.Count > 0 && mBottomBorder > mCurrDisplay[mCurrDisplay.Count - 1].TopPos)
         {
             DailyExpenditureSetItem set = mCurrDisplay[mCurrDisplay.Count - 1];
+
+            if (set.ContainsIndex(MainScreen.Instance.EditIndex)
+                || set.ContainsIndex(MainScreen.Instance.CostBreakdownIndex))
+            {
+                MainScreen.Instance.ResetEditIndices();
+            }
+
             mLastIndex -= set.NumItems;
             mBottomPos += set.Size;
             mPoolMgr.DestroyObj(set.gameObject);
             mCurrDisplay.RemoveAt(mCurrDisplay.Count - 1);
+            mSetItems.RemoveAt(mSetItems.Count - 1);
 
             while (mItemList.Count > mLastIndex)
             {
@@ -157,10 +227,32 @@ public class DailyExpenditureScrollList : MonoBehaviour
         while (mFirstIndex < mItems.Count && mCurrDisplay.Count > 0 && mTopBorder < mCurrDisplay[0].BottomPos)
         {
             DailyExpenditureSetItem set = mCurrDisplay[0];
+            float setOffset = set.Offset;
+
+            if (set.ContainsIndex(MainScreen.Instance.EditIndex)
+                || set.ContainsIndex(MainScreen.Instance.CostBreakdownIndex))
+            {
+                MainScreen.Instance.ResetEditIndices();
+            }
+
             mFirstIndex += set.NumItems;
             mTopPos -= set.Size;
             mPoolMgr.DestroyObj(set.gameObject);
             mCurrDisplay.RemoveAt(0);
+            mSetItems.RemoveAt(0);
+
+            if (setOffset > 0.0f)
+            {
+                Vector2 currPos = mContainerRect.anchoredPosition;
+                currPos.y -= setOffset;
+                mContainerRect.anchoredPosition = currPos;
+
+                if (mIsDragging)
+                {
+                    mDragOffset += setOffset / mViewportSize;
+                    mWasPositionUpdated = true;
+                }
+            }
         }
 
         while (mFirstIndex > 0 && mTopBorder > mTopPos)
@@ -180,6 +272,7 @@ public class DailyExpenditureScrollList : MonoBehaviour
             List<DailyExpenditureListItem> additionalItems = null;
             setItem.GetComponent<DailyExpenditureSetItem>().LoadExpenditures(mItems,
                 mTopPos,
+                this,
                 ref prevIndex,
                 out itemHeight,
                 out additionalItems,
@@ -193,11 +286,19 @@ public class DailyExpenditureScrollList : MonoBehaviour
             mTopPos += itemHeight;
 
             mCurrDisplay.Insert(0, setItem.GetComponent<DailyExpenditureSetItem>());
+            mSetItems.Insert(0, setItem);
         }
+    }
 
-        foreach (DailyExpenditureSetItem set in mCurrDisplay)
-        {
-            set.DoUpdate(mTopBorder);
-        }
+    public void OnEndDrag(PointerEventData eventData)
+    {
+        mIsDragging = false;
+        mDragOffset = 0.0f;
+        mWasPositionUpdated = false;
+    }
+
+    public void OnBeginDrag(PointerEventData eventData)
+    {
+        mIsDragging = true;
     }
 }

@@ -16,17 +16,36 @@ public class DailyExpenditureSetItem : PooledObject
 
     private List<GameObject> mListItems = new List<GameObject>();
 
-    public float TopPos { get; private set; }
+    private float mTopPos;
+    public float PreviousOffset;
+    public float TopPos
+    {
+        get { return mTopPos - PreviousOffset; }
+        private set { mTopPos = value; }
+    }
     public float BottomPos
     {
-        get { return TopPos - Size; }
+        get { return TopPos - Size - Offset; }
     }
+
+    private int mStartIndex;
     public float Size { get; private set; }
     public int NumItems { get; private set; }
 
     private float mTitleContainerSize;
+    private RectTransform mRectTrans;
+
+    private List<GameObject> mDailySetItems = new List<GameObject>();
+
+    [SerializeField]
+    private float mOffset;
+    public float Offset
+    {
+        get { return mOffset; }
+    }
 
     private bool mIsInit;
+    private DailyExpenditureScrollList mParent;
 
     private PoolMgr mPoolMgr;
 
@@ -40,6 +59,8 @@ public class DailyExpenditureSetItem : PooledObject
         }
 
         mListItems.Clear();
+
+        PreviousOffset = 0.0f;
     }
 
     private void Start()
@@ -49,7 +70,32 @@ public class DailyExpenditureSetItem : PooledObject
         mPoolMgr = PoolMgr.Instance;
 
         mTitleContainerSize = mDateTitleContainer.rect.height;
+        mRectTrans = GetComponent<RectTransform>();
         mIsInit = true;
+    }
+
+    public bool ContainsIndex(int index)
+    {
+        return index >= mStartIndex && index < mStartIndex + NumItems;
+    }
+
+    public void RepositionItems()
+    {
+        mOffset = 0.0f;
+        
+        float currPosition = -mTitleContainerSize;
+        foreach (GameObject item in mListItems)
+        {
+            DailyExpenditureListItem itemComp = item.GetComponent<DailyExpenditureListItem>();
+            item.GetComponent<RectTransform>().anchoredPosition = new Vector2(0.0f, currPosition);
+            currPosition -= itemComp.ItemHeight + itemComp.Offset;
+
+            mOffset += itemComp.Offset;
+        }
+
+        mRectTrans.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, -currPosition);
+
+        mParent.RepositionItems();
     }
 
     public float GetSize(List<ExpenditureItem> list, ref int index)
@@ -79,6 +125,7 @@ public class DailyExpenditureSetItem : PooledObject
 
     public void LoadExpenditures(List<ExpenditureItem> list,
         float topPos,
+        DailyExpenditureScrollList parent,
         ref int index,
         out float size,
         out List<DailyExpenditureListItem> items,
@@ -89,12 +136,19 @@ public class DailyExpenditureSetItem : PooledObject
             Start();
         }
 
+        mParent = parent;
+        mOffset = 0.0f;
+
         if (index >= list.Count)
         {
             size = 0.0f;
             items = new List<DailyExpenditureListItem>();
+
+            mStartIndex = 0;
             return;
         }
+
+        mStartIndex = index;
 
         DateTime selectedDate = list[index].Date;
         float itemHeight = mPoolMgr.GetPooledObjRef(mItemPoolType).GetComponent<RectTransform>().rect.height;
@@ -117,7 +171,7 @@ public class DailyExpenditureSetItem : PooledObject
             GameObject item = mPoolMgr.InstantiateObj(mItemPoolType, transform);
 
             item.GetComponent<RectTransform>().anchoredPosition = new Vector2(0.0f, -mTitleContainerSize - (itemHeight * NumItems));
-            item.GetComponent<DailyExpenditureListItem>().Init(list[index + NumItems], index + NumItems);
+            item.GetComponent<DailyExpenditureListItem>().Init(this, list[index + NumItems], index + NumItems);
 
             mListItems.Add(item);
 
@@ -130,7 +184,7 @@ public class DailyExpenditureSetItem : PooledObject
 
         Size = size;
 
-        GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, size);
+        mRectTrans.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, size);
 
         TopPos = topPos;
 
@@ -139,7 +193,7 @@ public class DailyExpenditureSetItem : PooledObject
             TopPos += size;
         }
 
-        GetComponent<RectTransform>().anchoredPosition = new Vector2(0.0f, TopPos);
+        mRectTrans.anchoredPosition = new Vector2(0.0f, TopPos);
 
         mDateTitleContainer.SetAsLastSibling();
     }
@@ -153,7 +207,7 @@ public class DailyExpenditureSetItem : PooledObject
         }
         else if (topBorder <= BottomPos + mTitleContainerSize)
         {
-            titleContainerPos = -Size + mTitleContainerSize;
+            titleContainerPos = -Size - mOffset + mTitleContainerSize;
         }
         else
         {
