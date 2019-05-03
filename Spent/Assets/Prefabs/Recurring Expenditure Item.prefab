@@ -106,7 +106,7 @@ MonoBehaviour:
   m_outlineColor:
     serializedVersion: 2
     rgba: 4278190080
-  m_fontSize: 53.5
+  m_fontSize: 18
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -152,7 +152,7 @@ MonoBehaviour:
     spaceCount: 0
     wordCount: 1
     linkCount: 0
-    lineCount: 1
+    lineCount: 2
     pageCount: 1
     materialCount: 1
   m_isUsingLegacyAnimationComponent: 0
@@ -276,7 +276,7 @@ MonoBehaviour:
   m_outlineColor:
     serializedVersion: 2
     rgba: 4278190080
-  m_fontSize: 54
+  m_fontSize: 19.9
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -520,7 +520,7 @@ MonoBehaviour:
   m_outlineColor:
     serializedVersion: 2
     rgba: 4278190080
-  m_fontSize: 25.35
+  m_fontSize: 18
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -537,7 +537,7 @@ MonoBehaviour:
   m_enableWordWrapping: 1
   m_wordWrappingRatios: 0.4
   m_overflowMode: 0
-  m_firstOverflowCharacterIndex: -1
+  m_firstOverflowCharacterIndex: 6
   m_linkedTextComponent: {fileID: 0}
   m_isLinkedTextComponent: 0
   m_isTextTruncated: 0
@@ -566,7 +566,7 @@ MonoBehaviour:
     spaceCount: 0
     wordCount: 3
     linkCount: 0
-    lineCount: 1
+    lineCount: 4
     pageCount: 1
     materialCount: 1
   m_isUsingLegacyAnimationComponent: 0
@@ -597,7 +597,6 @@ GameObject:
   - component: {fileID: 114994898230990548}
   - component: {fileID: 114342921435030428}
   - component: {fileID: 114600637840260376}
-  - component: {fileID: -4159326670718672069}
   m_Layer: 5
   m_Name: Recurring Expenditure Item
   m_TagString: Untagged
@@ -682,12 +681,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e0f508665735f9047880fbb7a1405eb5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mBackground: {fileID: 114403230635374098}
+  mPoolType: 6
   mButton: {fileID: 114600637840260376}
-  mDate: {fileID: 114192861439521410}
   mAmount: {fileID: 114855835302948662}
   mPrimaryCat: {fileID: 114519498938164716}
   mSecondaryCat: {fileID: 114394013369034928}
+  mDesc: {fileID: 0}
+  mBackground: {fileID: 114403230635374098}
+  mDescriptionItem: {fileID: 0}
+  mOffset: 0
+  mDate: {fileID: 114192861439521410}
 --- !u!114 &114600637840260376
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -733,19 +736,6 @@ MonoBehaviour:
       m_Calls: []
     m_TypeName: UnityEngine.UI.Button+ButtonClickedEvent, UnityEngine.UI, Version=1.0.0.0,
       Culture=neutral, PublicKeyToken=null
---- !u!114 &-4159326670718672069
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1403407908051908}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b337f5f464f3e449b9b3d2689b8961df, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  mPoolType: 6
 --- !u!1 &1430648735538348
 GameObject:
   m_ObjectHideFlags: 0
@@ -926,7 +916,7 @@ MonoBehaviour:
   m_outlineColor:
     serializedVersion: 2
     rgba: 4278190080
-  m_fontSize: 27.15
+  m_fontSize: 18
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -943,7 +933,7 @@ MonoBehaviour:
   m_enableWordWrapping: 1
   m_wordWrappingRatios: 0.4
   m_overflowMode: 0
-  m_firstOverflowCharacterIndex: -1
+  m_firstOverflowCharacterIndex: 6
   m_linkedTextComponent: {fileID: 0}
   m_isLinkedTextComponent: 0
   m_isTextTruncated: 0
@@ -972,7 +962,7 @@ MonoBehaviour:
     spaceCount: 0
     wordCount: 3
     linkCount: 0
-    lineCount: 1
+    lineCount: 4
     pageCount: 1
     materialCount: 1
   m_isUsingLegacyAnimationComponent: 0

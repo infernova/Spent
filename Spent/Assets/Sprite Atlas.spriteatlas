@@ -42,16 +42,18 @@ SpriteAtlas:
     variantMultiplier: 1
     packables:
     - {fileID: 102900000, guid: fe145d6e9537945789df2af9ecfa3cf5, type: 3}
-    totalSpriteSurfaceArea: 102500
+    totalSpriteSurfaceArea: 94500
     bindAsDefault: 1
   m_MasterAtlas: {fileID: 0}
   m_PackedSprites:
+  - {fileID: 21300000, guid: 977eecd32c2693941a833208009db647, type: 3}
   - {fileID: 21300000, guid: a6cc3e06c10896b46b83a3d2cb06b665, type: 3}
   - {fileID: 21300000, guid: 8073fb78ff69f644b8fde8728ba931ec, type: 3}
   - {fileID: 21300000, guid: 44bbee982bf32104ca1d445bb1868c33, type: 3}
   - {fileID: 21300000, guid: 63fb501d73c296a479cdbdb9221f2b88, type: 3}
   - {fileID: 21300000, guid: 927d791d49d31e54bab48eaf8baf0100, type: 3}
   m_PackedSpriteNamesToIndex:
+  - Gear
   - Bar Chart
   - Pie Chart
   - Add

@@ -16,6 +16,8 @@ public class MainScreen : SingletonBehavior<MainScreen>
     private Button mExpenditureListScreenButton;
     [SerializeField]
     private Button mCostBreakdownScreenButton;
+    [SerializeField]
+    private Button mSettingsScreenButton;
 
     private bool mIsCostBreakdownExpenseList
     {
@@ -39,6 +41,10 @@ public class MainScreen : SingletonBehavior<MainScreen>
     }
 
     #region Item Edit
+    [Header("Item Edit")]
+    [SerializeField]
+    private GameObject mEditExpenditureButtonContainer;
+
     public void ResetEditIndices()
     {
         EditIndex = NULL_INDEX;
@@ -55,6 +61,10 @@ public class MainScreen : SingletonBehavior<MainScreen>
         else if (mCostBreakdownContainer.gameObject.activeSelf)
         {
             SelectCostBreakdownItem(index);
+        }
+        else if (mRecurringExpenditureListContainer.gameObject.activeSelf)
+        {
+            SelectRecurringExpenditureItem(index);
         }
     }
 
@@ -81,24 +91,32 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
     public void CancelEdit()
     {
-        ResetEditIndices();
-
-        LoadBlankExpenditure();
-
-        mAddExpenditureContainer.SetActive(false);
-
-        if (mIsCostBreakdownExpenseList)
+        if (CostBreakdownIndex != NULL_INDEX)
         {
             mCostBreakdownContainer.SetActive(true);
         }
-        else
+        else if (EditIndex != NULL_INDEX)
         {
             mExpenditureListContainer.SetActive(true);
         }
+        else if (RecurringEditIndex != NULL_INDEX)
+        {
+            mRecurringExpenditureListContainer.SetActive(true);
+        }
+
+        ResetEditIndices();
+        LoadBlankExpenditure();
+        mAddExpenditureContainer.SetActive(false);
     }
 
     public void ConfirmEdit()
     {
+        if (RecurringEditIndex != NULL_INDEX)
+        {
+            ConfirmRecurringEdit();
+            return;
+        }
+
         int day = int.Parse(mDayField.text);
         int month = int.Parse(mMonthField.text);
         int year = int.Parse(mYearField.text);
@@ -322,21 +340,18 @@ public class MainScreen : SingletonBehavior<MainScreen>
                 && !mAddExpenditureButtonContainer.activeSelf)
             {
                 mEditExpenditureButtonContainer.SetActive(false);
-                mEditRecurringExpenditureButtonContainer.SetActive(false);
                 mAddExpenditureButtonContainer.SetActive(true);
                 mAddExpenditureRecurringButton.SetActive(true);
             }
             else if ((EditIndex != NULL_INDEX || CostBreakdownIndex != NULL_INDEX) && !mEditExpenditureButtonContainer.activeSelf)
             {
                 mEditExpenditureButtonContainer.SetActive(true);
-                mEditRecurringExpenditureButtonContainer.SetActive(false);
                 mAddExpenditureButtonContainer.SetActive(false);
                 mAddExpenditureRecurringButton.SetActive(false);
             }
-            else if (RecurringEditIndex != NULL_INDEX && !mEditRecurringExpenditureButtonContainer.activeSelf)
+            else if (RecurringEditIndex != NULL_INDEX && !mEditExpenditureButtonContainer.activeSelf)
             {
-                mEditExpenditureButtonContainer.SetActive(false);
-                mEditRecurringExpenditureButtonContainer.SetActive(true);
+                mEditExpenditureButtonContainer.SetActive(true);
                 mAddExpenditureButtonContainer.SetActive(false);
                 mAddExpenditureRecurringButton.SetActive(false);
             }
@@ -390,7 +405,8 @@ public class MainScreen : SingletonBehavior<MainScreen>
         LIST,
         BREAKDOWN,
         EDIT,
-        RECURRING
+        RECURRING,
+        SETTINGS
     }
 
     public void SetDisplayState(int state)
@@ -403,13 +419,11 @@ public class MainScreen : SingletonBehavior<MainScreen>
         switch (state)
         {
             case DisplayState.ADD:
-                if (EditIndex != NULL_INDEX || CostBreakdownIndex != NULL_INDEX)
+                if (EditIndex != NULL_INDEX 
+                    || CostBreakdownIndex != NULL_INDEX
+                    || RecurringEditIndex != NULL_INDEX)
                 {
                     CancelEdit();
-                }
-                else if (RecurringEditIndex != NULL_INDEX)
-                {
-                    CancelRecurringEdit();
                 }
 
                 LoadBlankExpenditure();
@@ -418,10 +432,12 @@ public class MainScreen : SingletonBehavior<MainScreen>
                 mExpenditureListContainer.SetActive(false);
                 mCostBreakdownContainer.SetActive(false);
                 mRecurringExpenditureListContainer.SetActive(false);
+                mSettingsContainer.SetActive(false);
 
                 mAddScreenButton.interactable = false;
                 mExpenditureListScreenButton.interactable = true;
                 mCostBreakdownScreenButton.interactable = true;
+                mSettingsScreenButton.interactable = true;
                 break;
 
             case DisplayState.LIST:
@@ -431,10 +447,12 @@ public class MainScreen : SingletonBehavior<MainScreen>
                 mExpenditureListContainer.SetActive(true);
                 mCostBreakdownContainer.SetActive(false);
                 mRecurringExpenditureListContainer.SetActive(false);
+                mSettingsContainer.SetActive(false);
 
                 mAddScreenButton.interactable = true;
                 mExpenditureListScreenButton.interactable = false;
                 mCostBreakdownScreenButton.interactable = true;
+                mSettingsScreenButton.interactable = true;
                 break;
 
             case DisplayState.BREAKDOWN:
@@ -444,10 +462,12 @@ public class MainScreen : SingletonBehavior<MainScreen>
                 mExpenditureListContainer.SetActive(false);
                 mCostBreakdownContainer.SetActive(true);
                 mRecurringExpenditureListContainer.SetActive(false);
+                mSettingsContainer.SetActive(false);
 
                 mAddScreenButton.interactable = true;
                 mExpenditureListScreenButton.interactable = true;
                 mCostBreakdownScreenButton.interactable = false;
+                mSettingsScreenButton.interactable = true;
                 break;
 
             case DisplayState.EDIT:
@@ -455,10 +475,12 @@ public class MainScreen : SingletonBehavior<MainScreen>
                 mExpenditureListContainer.SetActive(false);
                 mCostBreakdownContainer.SetActive(false);
                 mRecurringExpenditureListContainer.SetActive(false);
+                mSettingsContainer.SetActive(false);
 
                 mAddScreenButton.interactable = true;
                 mExpenditureListScreenButton.interactable = true;
                 mCostBreakdownScreenButton.interactable = true;
+                mSettingsScreenButton.interactable = true;
                 break;
 
             case DisplayState.RECURRING:
@@ -468,10 +490,25 @@ public class MainScreen : SingletonBehavior<MainScreen>
                 mExpenditureListContainer.SetActive(false);
                 mCostBreakdownContainer.SetActive(false);
                 mRecurringExpenditureListContainer.SetActive(true);
+                mSettingsContainer.SetActive(false);
 
                 mAddScreenButton.interactable = true;
                 mExpenditureListScreenButton.interactable = true;
                 mCostBreakdownScreenButton.interactable = true;
+                mSettingsScreenButton.interactable = true;
+                break;
+
+            case DisplayState.SETTINGS:
+                mAddExpenditureContainer.SetActive(false);
+                mExpenditureListContainer.SetActive(false);
+                mCostBreakdownContainer.SetActive(false);
+                mRecurringExpenditureListContainer.SetActive(false);
+                mSettingsContainer.SetActive(true);
+
+                mAddScreenButton.interactable = true;
+                mExpenditureListScreenButton.interactable = true;
+                mCostBreakdownScreenButton.interactable = true;
+                mSettingsScreenButton.interactable = false;
                 break;
         }
 
@@ -781,17 +818,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
                 Expenditures.RefreshDisplayedList();
             }
 
-            mAmountField.text = string.Empty;
-            mPrimaryCatField.text = string.Empty;
-            mSecondaryCatField.text = string.Empty;
-            mDescriptionField.text = string.Empty;
-
-            mPrimaryCatDropdown.gameObject.SetActive(false);
-            mSecondaryCatDropdown.gameObject.SetActive(false);
-
-            mDayField.text = DateTime.Now.ToString("dd");
-            mMonthField.text = DateTime.Now.ToString("MM");
-            mYearField.text = DateTime.Now.ToString("yyyy");
+            LoadBlankExpenditure();
 
             OnDateEndEdit();
         }
@@ -916,8 +943,6 @@ public class MainScreen : SingletonBehavior<MainScreen>
     [Header("Expenditure List")]
     [SerializeField]
     private GameObject mExpenditureListContainer;
-    [SerializeField]
-    private GameObject mEditExpenditureButtonContainer;
     [SerializeField]
     private GameObject mExpenditureListNilText;
     [SerializeField]
@@ -1593,9 +1618,9 @@ public class MainScreen : SingletonBehavior<MainScreen>
     [SerializeField]
     private GameObject mRecurringExpenditureListContainer;
     [SerializeField]
-    private GameObject mEditRecurringExpenditureButtonContainer;
+    private DailyExpenditureScrollList mRecurringExpenditureList;
     [SerializeField]
-    private GUILiteScrollList mRecurringExpenditureList;
+    private GameObject mRecurringExpenditureNilText;
     [SerializeField]
     private Button mEditRecurringExpenditureButton;
     [SerializeField]
@@ -1618,7 +1643,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
             for (int i = 0; i < mRecurringExpenditureList.ItemList.Count; i++)
             {
-                ((SelectableListItem)mRecurringExpenditureList.ItemList[i]).CheckIfSelected(mRecurringEditIndex);
+                mRecurringExpenditureList.ItemList[i].CheckIfSelected(mRecurringEditIndex);
             }
 
             mEditRecurringExpenditureButton.interactable = mRecurringEditIndex != NULL_INDEX;
@@ -1633,7 +1658,9 @@ public class MainScreen : SingletonBehavior<MainScreen>
         ResetEditIndices();
 
         mRecurringExpenditureListContainer.SetActive(true);
-        mRecurringExpenditureList.Init(RecurringExpense.RecurringItemList.Count);
+        mRecurringExpenditureList.Init(RecurringExpense.RecurringItemList);
+
+        mRecurringExpenditureNilText.SetActive(RecurringExpense.RecurringItemList.Count == 0);
     }
 
     public void SelectRecurringExpenditureItem(int index)
@@ -1704,6 +1731,12 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
         PlayerPrefs.SetString(RecurringString, JsonUtility.ToJson(RecurringExpense));
     }
+    #endregion
+
+    #region Settings
+    [Header("Settings")]
+    [SerializeField]
+    private GameObject mSettingsContainer;
     #endregion
 }
 

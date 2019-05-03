@@ -16,7 +16,8 @@ namespace StarstruckFramework
         COST_BREAKDOWN_ITEM,
         BAR_CHART_ITEM,
         CATEGORY_INPUT_ITEM,
-        DESCRIPTION_ITEM
+        DESCRIPTION_ITEM,
+        RECURRING_SET
     }
 
 	public class PoolMgr : SingletonBehavior<PoolMgr>

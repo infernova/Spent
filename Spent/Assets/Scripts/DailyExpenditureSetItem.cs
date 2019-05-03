@@ -17,6 +17,7 @@ public class DailyExpenditureSetItem : PooledObject
     private List<GameObject> mListItems = new List<GameObject>();
 
     private float mTopPos;
+    [HideInInspector]
     public float PreviousOffset;
     public float TopPos
     {
@@ -37,7 +38,6 @@ public class DailyExpenditureSetItem : PooledObject
 
     private List<GameObject> mDailySetItems = new List<GameObject>();
 
-    [SerializeField]
     private float mOffset;
     public float Offset
     {
@@ -153,7 +153,10 @@ public class DailyExpenditureSetItem : PooledObject
         DateTime selectedDate = list[index].Date;
         float itemHeight = mPoolMgr.GetPooledObjRef(mItemPoolType).GetComponent<RectTransform>().rect.height;
         NumItems = 0;
-        mDateTitle.SetText(selectedDate.ToString("dddd, d MMM yyyy"));
+        if (mDateTitle != null)
+        {
+            mDateTitle.SetText(selectedDate.ToString("dddd, d MMM yyyy"));
+        }
 
         items = new List<DailyExpenditureListItem>();
 

@@ -15,9 +15,7 @@ public class DailyExpenditureScrollList : MonoBehaviour, IEndDragHandler, IBegin
     [SerializeField]
     private ObjectPoolType mListItemPoolType;
 
-    [SerializeField]
     private float mTopBorder;
-    [SerializeField]
     private float mBottomBorder;
 
     private float mViewportSize;

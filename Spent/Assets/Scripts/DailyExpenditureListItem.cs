@@ -2,6 +2,7 @@
 using UnityEngine.UI;
 using StarstruckFramework;
 using UnityEngine;
+using System.Collections;
 
 public class DailyExpenditureListItem : PooledObject
 {
@@ -42,6 +43,23 @@ public class DailyExpenditureListItem : PooledObject
         }
     }
 
+    private void OnDisable()
+    {
+        if (mDescriptionItem != null)
+        {
+            MainScreen.Instance.StartCoroutine(RemoveDescriptionCoroutine());
+        }
+    }
+
+    private IEnumerator RemoveDescriptionCoroutine()
+    {
+        yield return new WaitForEndOfFrame();
+
+        Offset = 0.0f;
+        PoolMgr.Instance.DestroyObj(mDescriptionItem);
+        mDescriptionItem = null;
+    }
+
     private void Start()
     {
         mButton.onClick.AddListener(() => MainScreen.Instance.SelectExpenditure(mIndex));
@@ -49,7 +67,7 @@ public class DailyExpenditureListItem : PooledObject
         Offset = 0.0f;
     }
 
-    public void Init(DailyExpenditureSetItem parent, ExpenditureItem item, int index)
+    public virtual void Init(DailyExpenditureSetItem parent, ExpenditureItem item, int index)
     {
         mParent = parent;
 
