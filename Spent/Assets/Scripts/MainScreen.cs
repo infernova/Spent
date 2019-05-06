@@ -9,6 +9,9 @@ public class MainScreen : SingletonBehavior<MainScreen>
 {
     private const int NULL_INDEX = -1;
 
+    public ExpenditureDescriptionItem ScrollingInDescription;
+    public List<ExpenditureDescriptionItem> ScrollingOutDescriptions = new List<ExpenditureDescriptionItem>();
+
     [Header("Display State Template")]
     [SerializeField]
     private Button mAddScreenButton;
