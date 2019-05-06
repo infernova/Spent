@@ -9,7 +9,9 @@ public class MainScreen : SingletonBehavior<MainScreen>
 {
     private const int NULL_INDEX = -1;
 
+    [HideInInspector]
     public ExpenditureDescriptionItem ScrollingInDescription;
+    [HideInInspector]
     public List<ExpenditureDescriptionItem> ScrollingOutDescriptions = new List<ExpenditureDescriptionItem>();
 
     [Header("Display State Template")]
@@ -1142,7 +1144,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
             mCostBreakdownBackButton.SetActive(false);
 
             mCostBreakdownList.GetComponent<RectTransform>().SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,
-                mCostBreakdownScrollListMinSize + 300.0f);
+                mCostBreakdownScrollListMinSize + 150.0f);
 
             for (int i = Expenditures.Items.Count - 1; i >= 0; i--)
             {
@@ -1293,14 +1295,12 @@ public class MainScreen : SingletonBehavior<MainScreen>
             monthlyAmounts.Add(0.0f);
         }
 
-        float lineInterval = 0.0f;
+        float lineInterval = 65.0f;
 
         if (mSelectedCostBreakdownCat.Contains("\t"))
         {
             mCostBreakdownExpenditureListItems.Reverse();
             mCostBreakdownDailyExpenditureList.Init(mCostBreakdownExpenditureListItems);
-
-            lineInterval = 82.5f;
 
             mCostBreakdownPieChartButton.SetActive(false);
             mCostBreakdownBarChartButton.SetActive(false);
@@ -1420,8 +1420,6 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
             mCostBreakdownNilText.SetActive(CostBreakdownItems.Count == 0);
 
-            lineInterval = 67.5f;
-
             mCostBreakdownPieChartButton.SetActive(true);
             mCostBreakdownBarChartButton.SetActive(true);
 
@@ -1498,7 +1496,7 @@ public class MainScreen : SingletonBehavior<MainScreen>
         }
 
         mCostBreakdownBarChartLeftAxis.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,
-            (lineInterval * 5.0f) + 37.5f);
+            (lineInterval * 5.0f) + 32.5f);
 
         mPoolMgr.GetPooledObjRef(ObjectPoolType.BAR_CHART_ITEM)
             .GetComponent<CostBreakdownBarItem>().MaxBarHeight = lineInterval * 5.0f;
