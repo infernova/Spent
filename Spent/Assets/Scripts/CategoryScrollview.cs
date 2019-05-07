@@ -26,16 +26,16 @@ public class CategoryScrollview : MonoBehaviour
         for (int i = 0; i < options.Count; i++)
         {
             GameObject item = poolMgr.InstantiateObj(TemplatePoolType, GetComponent<ScrollRect>().content);
+            item.GetComponent<CategoryScrollItem>().Init(i, options[i], isPrimaryCat);
+
             RectTransform itemRectTrans = item.GetComponent<RectTransform>();
             Vector2 min = itemRectTrans.offsetMin;
             min.x = 2.0f;
             itemRectTrans.offsetMin = min;
 
             Vector2 max = itemRectTrans.offsetMax;
-            max.x = 2.0f;
+            max.x = -2.0f;
             itemRectTrans.offsetMax = max;
-
-            item.GetComponent<CategoryScrollItem>().Init(i, options[i], isPrimaryCat);
 
             mOptions.Add(item);
         }
