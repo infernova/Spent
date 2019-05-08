@@ -49,7 +49,7 @@ public class DailyExpenditureScrollList : MonoBehaviour, IEndDragHandler, IBegin
 
     private PoolMgr mPoolMgr;
 
-    private void Start()
+	private void Start()
     {
         if (mIsInit) return;
 
@@ -155,6 +155,7 @@ public class DailyExpenditureScrollList : MonoBehaviour, IEndDragHandler, IBegin
         }
 
         mContainerRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, mContainerSize);
+        OnScrollValueChanged(Vector2.one);
     }
 
     public void OnScrollValueChanged(Vector2 pos)

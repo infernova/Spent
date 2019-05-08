@@ -643,6 +643,8 @@ public class MainScreen : SingletonBehavior<MainScreen>
 
 	private void LoadBlankExpenditure()
     {
+        OnCategoryEditEnd();
+
         mDayField.text = DateTime.Now.ToString("dd");
         mMonthField.text = DateTime.Now.ToString("MM");
         mYearField.text = DateTime.Now.ToString("yyyy");
